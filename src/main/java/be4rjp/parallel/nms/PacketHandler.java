@@ -47,7 +47,12 @@ public class PacketHandler extends ChannelDuplexHandler{
     
     public void doWrite(ChannelHandlerContext channelHandlerContext, Object packet, ChannelPromise channelPromise) throws Exception{
         try {
-            super.write(channelHandlerContext, packet, channelPromise);
+            Channel channel = NMSUtil.getChannel(player);
+            
+            ChannelHandler channelHandler = channel.pipeline().get(Parallel.getPlugin().getName() + "PacketInjector:" + player.getName());
+            if(channelHandler != null && player.isOnline()) {
+                super.write(channelHandlerContext, packet, channelPromise);
+            }
         }catch (ClosedChannelException e){}
     }
 }
