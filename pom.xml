@@ -6,7 +6,7 @@
 
     <groupId>be4rjp</groupId>
     <artifactId>Parallel</artifactId>
-    <version>v1.0.0</version>
+    <version>v1.0.1</version>
     <packaging>jar</packaging>
 
     <name>Parallel</name>

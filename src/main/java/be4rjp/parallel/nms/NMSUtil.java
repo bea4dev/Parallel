@@ -208,6 +208,16 @@ public class NMSUtil {
         Field block = PacketPlayOutBlockChange.getField("block");
         block.set(packet, iBlockData);
     }
+    
+    
+    public static void sendChunkUpdatePacket(Player player, Object chunk)
+            throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
+            IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        
+        Object packet = createPacketPlayOutMapChunk(chunk, 65535);
+        Method sendPacket = getNMSClass("PlayerConnection").getMethod("sendPacket", getNMSClass("Packet"));
+        sendPacket.invoke(getConnection(player), packet);
+    }
  
     
     public static void sendEntityTeleportPacket(Player player, Object entity)

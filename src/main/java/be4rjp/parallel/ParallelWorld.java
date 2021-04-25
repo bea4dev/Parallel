@@ -1,13 +1,17 @@
 package be4rjp.parallel;
 
+import be4rjp.parallel.nms.NMSUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.AbstractMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -70,6 +74,36 @@ public class ParallelWorld {
                 if (player.getUniqueId().toString().equals(uuid)) {
                     player.sendBlockChange(location, blockData);
                     break;
+                }
+            }
+        }
+    }
+    
+    public void setBlocks(Map<Block, BlockData> blockDataMap, boolean chunkUpdate){
+        Set<Chunk> chunkSet = new HashSet<>();
+        
+        for(Map.Entry<Block, BlockData> entry : blockDataMap.entrySet()){
+            Block block = entry.getKey();
+            BlockData data = entry.getValue();
+            
+            Location location = block.getLocation();
+            blockMap.removeIf(e -> e.getKey().equals(location));
+            blockMap.add(new AbstractMap.SimpleEntry<>(location, data));
+            
+            chunkSet.add(block.getChunk());
+        }
+    
+        for(Chunk chunk : chunkSet) {
+            if (chunk.isLoaded()){
+                for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+                    if (player.getUniqueId().toString().equals(uuid)) {
+                        try {
+                            NMSUtil.sendChunkUpdatePacket(player, chunk);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    }
                 }
             }
         }
