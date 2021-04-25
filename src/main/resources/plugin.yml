@@ -1,0 +1,4 @@
+name: Parallel
+version: ${project.version}
+main: be4rjp.parallel.Parallel
+api-version: 1.15
