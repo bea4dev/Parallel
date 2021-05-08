@@ -32,6 +32,6 @@ parallelWorld.setBlock(block, Material.STONE);
 <dependency>
     <groupId>com.github.Be4rJP</groupId>
     <artifactId>Parallel</artifactId>
-    <version>v1.0.0</version>
+    <version>1.0.2</version>
 </dependency>
 ```

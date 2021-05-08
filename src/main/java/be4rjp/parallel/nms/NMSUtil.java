@@ -1,14 +1,12 @@
 package be4rjp.parallel.nms;
 
 import be4rjp.parallel.util.BlockPosition3i;
-import com.mojang.datafixers.util.Pair;
 import io.netty.channel.Channel;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -230,5 +228,47 @@ public class NMSUtil {
         Object packet = packetConstructor.newInstance(entity);
         Method sendPacket = getNMSClass("PlayerConnection").getMethod("sendPacket", getNMSClass("Packet"));
         sendPacket.invoke(getConnection(player), packet);
+    }
+    
+    
+    public static int getCombinedId(Object iBlockData)
+            throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
+            IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        
+        Class<?> Block = getNMSClass("Block");
+        Class<?> IBlockData = getNMSClass("IBlockData");
+        Method getCombinedId = Block.getMethod("getCombinedId", IBlockData);
+        return (int)getCombinedId.invoke(null, iBlockData);
+    }
+    
+    
+    public static Object getByCombinedId(int id)
+            throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
+            IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        
+        Class<?> Block = getNMSClass("Block");
+        Method getByCombinedId = Block.getMethod("getByCombinedId", int.class);
+        return getByCombinedId.invoke(null, id);
+    }
+    
+    
+    public static Object setSEtoZero(Player player)
+            throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
+            IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        
+        Method getHandle = player.getClass().getMethod("getHandle");
+        Object nmsPlayer = getHandle.invoke(player);
+        Field conField = nmsPlayer.getClass().getField("playerConnection");
+        Object con = conField.get(nmsPlayer);
+        
+        Class<?> PlayerConnection = getNMSClass("PlayerConnection");
+        Field C = PlayerConnection.getDeclaredField("C");
+        Field E = PlayerConnection.getDeclaredField("E");
+        C.setAccessible(true);
+        E.setAccessible(true);
+        
+        C.set(con, 0);
+        E.set(con, 0);
+        return con;
     }
 }
