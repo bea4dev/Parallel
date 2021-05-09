@@ -3,3 +3,14 @@ version: ${project.version}
 main: be4rjp.parallel.Parallel
 api-version: 1.15
 softdepend: [Multiverse-Core]
+depend: [WorldEdit]
+#--------------------------------------
+commands:
+  parallel:
+    description: Type /parallel help
+    usage: Type /parallel help
+    permission: parallel.admin
+#--------------------------------------
+permissions:
+  parallel.admin:
+    description: admin command.

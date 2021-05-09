@@ -277,7 +277,7 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Class<?> CraftBlockData = getCraftBukkitClass("CraftBlockData");
+        Class<?> CraftBlockData = getCraftBukkitClass("block.data.CraftBlockData");
         Class<?> IBlockData = getNMSClass("IBlockData");
         Method fromData = CraftBlockData.getMethod("fromData", IBlockData);
         return (BlockData)fromData.invoke(null, iBlockData);

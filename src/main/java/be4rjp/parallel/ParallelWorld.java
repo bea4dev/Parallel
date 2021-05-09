@@ -9,13 +9,15 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.AbstractMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+/**
+ * プレイヤーごとに違うブロックを設置するための機能をまとめたクラス
+ */
 public class ParallelWorld {
     
     private static Set<Map.Entry<String, ParallelWorld>> worldMap;
@@ -79,6 +81,12 @@ public class ParallelWorld {
         }
     }
     
+    
+    /**
+     * 一気に大量のブロックを設置する
+     * @param blockDataMap 置き換えるブロックとブロックデータのマップ
+     * @param chunkUpdate チャンクアップデートのパケットをプレイヤーに送信するかどうか
+     */
     public void setBlocks(Map<Block, BlockData> blockDataMap, boolean chunkUpdate){
         Set<Chunk> chunkSet = new HashSet<>();
         
@@ -93,12 +101,16 @@ public class ParallelWorld {
             chunkSet.add(block.getChunk());
         }
     
+        
+        if(!chunkUpdate) return;
+        
         for(Chunk chunk : chunkSet) {
             if (chunk.isLoaded()){
                 for (Player player : Bukkit.getServer().getOnlinePlayers()) {
                     if (player.getUniqueId().toString().equals(uuid)) {
                         try {
-                            NMSUtil.sendChunkUpdatePacket(player, chunk);
+                            Object nmsChunk = NMSUtil.getNMSChunk(chunk);
+                            NMSUtil.sendChunkUpdatePacket(player, nmsChunk);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
