@@ -271,4 +271,15 @@ public class NMSUtil {
         E.set(con, 0);
         return con;
     }
+    
+    
+    public static BlockData getBlockData(Object iBlockData)
+            throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
+            IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        
+        Class<?> CraftBlockData = getCraftBukkitClass("CraftBlockData");
+        Class<?> IBlockData = getNMSClass("IBlockData");
+        Method fromData = CraftBlockData.getMethod("fromData", IBlockData);
+        return (BlockData)fromData.invoke(null, iBlockData);
+    }
 }
