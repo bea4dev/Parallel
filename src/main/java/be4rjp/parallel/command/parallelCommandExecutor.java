@@ -191,6 +191,42 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
         
             return list;
         }
+    
+        if (args.length == 2) {
+            list.add("create");
+            list.add("save");
+            
+            if(args[0].equals("structure")){
+                list.add("set-data");
+            }
+        
+            return list;
+        }
+    
+        if (args.length == 3) {
+            if(args[0].equals("structure")){
+                if(args[1].equals("create")) {
+                    list.add("[structure-name]");
+                }else{
+                    list = new ArrayList<>(ParallelStructure.getStructureMap().keySet());
+                }
+            }else{
+                if(args[1].equals("create")) {
+                    list.add("[data-name]");
+                }else{
+                    list = new ArrayList<>(StructureData.getStructureDataMap().keySet());
+                }
+            }
+        
+            return list;
+        }
+    
+        if (args.length == 4) {
+            if(args[1].equals("set-data")){
+                list = new ArrayList<>(StructureData.getStructureDataMap().keySet());
+                return list;
+            }
+        }
         
         return null;
     }

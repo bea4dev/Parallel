@@ -32,6 +32,7 @@ public class StructureData {
         return structureDataMap.get(name);
     }
     
+    public static Map<String, StructureData> getStructureDataMap() {return structureDataMap;}
     
     /**
      * 全ての構造物データを読み込む

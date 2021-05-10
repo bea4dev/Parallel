@@ -31,6 +31,8 @@ public class ParallelStructure {
         return structureMap.get(name);
     }
     
+    public static Map<String, ParallelStructure> getStructureMap() {return structureMap;}
+    
     /**
      * 全ての構造物を読み込む
      */
