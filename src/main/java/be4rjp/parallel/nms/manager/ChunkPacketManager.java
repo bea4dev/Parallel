@@ -85,7 +85,9 @@ public class ChunkPacketManager extends BukkitRunnable {
                         for (int iy = 0; iy < 16; iy++) {
                             for (int iz = 0; iz < 16; iz++) {
                                 Object iBlockData = NMSUtil.getTypeChunkSection(Array.get(sections, y), (x + ix) & 15, (y + iy) & 15, (z + iz) & 15);
-                                NMSUtil.setTypeChunkSection(chunkSection, (x + ix) & 15, (y + iy) & 15, (z + iz) & 15, iBlockData);
+                                BlockData blockData = NMSUtil.getBlockData(iBlockData);
+                                Object iBlockData2 = NMSUtil.getIBlockData(blockData.clone());
+                                NMSUtil.setTypeChunkSection(chunkSection, (x + ix) & 15, (y + iy) & 15, (z + iz) & 15, iBlockData2);
                             }
                         }
                     }

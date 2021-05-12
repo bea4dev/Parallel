@@ -2,7 +2,7 @@ name: Parallel
 version: ${project.version}
 main: be4rjp.parallel.Parallel
 api-version: 1.15
-softdepend: [Multiverse-Core]
+softdepend: [Multiverse-Core, Cinema4C]
 depend: [WorldEdit]
 #--------------------------------------
 commands:

@@ -6,7 +6,7 @@
 
 ### Tested version
 ```
-1.15.x
+1.15.x, 1.16.x
 ```
 
 ### maven

@@ -6,7 +6,7 @@
 
     <groupId>be4rjp</groupId>
     <artifactId>Parallel</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
     <packaging>jar</packaging>
 
     <name>Parallel</name>
@@ -70,6 +70,10 @@
             <id>enginehub-maven</id>
             <url>https://maven.enginehub.org/repo/</url>
         </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -95,6 +99,12 @@
             <groupId>com.sk89q.worldedit</groupId>
             <artifactId>worldedit-bukkit</artifactId>
             <version>7.2.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.Be4rJP</groupId>
+            <artifactId>Cinema4C</artifactId>
+            <version>e1a2df2c89</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

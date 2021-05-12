@@ -1,5 +1,6 @@
 package be4rjp.parallel;
 
+import be4rjp.parallel.cinema4c.BridgeManager;
 import be4rjp.parallel.command.parallelCommandExecutor;
 import be4rjp.parallel.structure.ParallelStructure;
 import be4rjp.parallel.structure.StructureData;
@@ -26,6 +27,13 @@ public final class Parallel extends JavaPlugin {
         getCommand("parallel").setExecutor(new parallelCommandExecutor());
         getCommand("parallel").setTabCompleter(new parallelCommandExecutor());
     
+        
+        //For cinema4c extensions
+        
+        if(getServer().getPluginManager().getPlugin("Cinema4C") != null){
+            getLogger().info("Registering cinema4c extensions...");
+            BridgeManager.registerPluginBridge(this.getName());
+        }
         
         StructureData.loadAllStructureData();
         ParallelStructure.loadAllParallelStructure();
