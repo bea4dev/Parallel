@@ -2,6 +2,9 @@ package be4rjp.parallel.structure;
 
 import be4rjp.parallel.Parallel;
 import be4rjp.parallel.ParallelWorld;
+import be4rjp.parallel.nms.NMSUtil;
+import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -12,8 +15,7 @@ import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class ParallelStructure {
     
@@ -64,6 +66,7 @@ public class ParallelStructure {
     
     private final String name;
     private Location baseLocation;
+    private Map<String, Set<Block>> dataMap = new HashMap<>();
     
     public ParallelStructure(String name){
         this.name = name;
@@ -92,14 +95,60 @@ public class ParallelStructure {
      * @param structureData 構造物データ
      */
     public void setStructureData(String uuid, StructureData structureData){
+        clearStructureData(uuid, false);
+        
         Map<Block, BlockData> blockDataMap = new HashMap<>();
+        Set<Block> blocks = new HashSet<>();
         for(Map.Entry<Vector, BlockData> entry : structureData.getBlockDataMap().entrySet()){
             Block block = getBaseLocation().add(entry.getKey()).getBlock();
             blockDataMap.put(block, entry.getValue());
+            blocks.add(block);
         }
+        dataMap.put(uuid, blocks);
     
         ParallelWorld parallelWorld = ParallelWorld.getParallelWorld(uuid);
         parallelWorld.setBlocks(blockDataMap, true);
+    }
+    
+    
+    /**
+     * 適用されている構造物データを消去します
+     * @param player 構造物を変化させて見せるプレイヤー
+     * @param chunkUpdate チャンクアップデートのパケットを送信するかどうか
+     */
+    public void clearStructureData(Player player, boolean chunkUpdate){
+        this.clearStructureData(player.getUniqueId().toString(), chunkUpdate);
+    }
+    
+    
+    /**
+     * 適用されている構造物データを消去します
+     * @param uuid 構造物を変化させて見せるプレイヤーのuuid
+     * @param chunkUpdate チャンクアップデートのパケットを送信するかどうか
+     */
+    public void clearStructureData(String uuid, boolean chunkUpdate){
+        Set<Block> blocks = dataMap.get(uuid);
+        if(blocks == null) return;
+        
+        ParallelWorld parallelWorld = ParallelWorld.getParallelWorld(uuid);
+        Set<Chunk> chunks = new HashSet<>();
+        for(Block block : blocks){
+            parallelWorld.removeBlock(block);
+            chunks.add(block.getChunk());
+        }
+        dataMap.remove(uuid);
+        
+        if(chunkUpdate){
+            Player player = Bukkit.getPlayer(UUID.fromString(uuid));
+            if(player == null) return;
+            
+            try {
+                for (Chunk chunk : chunks) {
+                    Object nmsChunk = NMSUtil.getNMSChunk(chunk);
+                    NMSUtil.sendChunkUpdatePacket(player, nmsChunk);
+                }
+            }catch (Exception e){e.printStackTrace();}
+        }
     }
     
     

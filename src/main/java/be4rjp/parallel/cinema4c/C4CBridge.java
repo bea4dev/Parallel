@@ -11,10 +11,24 @@ public class C4CBridge implements PluginBridge {
     
     @Override
     public void executeCommand(ScenePlayer scenePlayer, String command) {
-        //set-data [structure-name] [data-name]
+    
         String[] args = command.split(" ");
-        if(args.length < 3) return;
+    
+        if(args.length < 2) return;
+        //remove-data [structure-name]
+        if(args[0].equals("remove-data")){
+            ParallelStructure parallelStructure = ParallelStructure.getParallelStructure(args[1]);
+            if (parallelStructure == null) {
+                Parallel.getPlugin().getLogger().warning(ChatColor.RED + "指定された名前の構造体は存在しません。");
+                return;
+            }
+    
+            scenePlayer.getAudiences().forEach(audience -> parallelStructure.clearStructureData(audience, true));
+        }
         
+        
+        if(args.length < 3) return;
+        //set-data [structure-name] [data-name]
         if(args[0].equals("set-data")){
             ParallelStructure parallelStructure = ParallelStructure.getParallelStructure(args[1]);
             if (parallelStructure == null) {

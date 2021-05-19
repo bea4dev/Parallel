@@ -174,6 +174,29 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
                 sender.sendMessage(ChatColor.GREEN + "適用しました。");
                 return true;
             }
+    
+            //parallel structure remove-data [structure-name] [player]
+            if(args[1].equals("remove-data")) {
+                if (args.length < 4) {
+                    return false;
+                }
+    
+                ParallelStructure parallelStructure = ParallelStructure.getParallelStructure(args[2]);
+                if (parallelStructure == null) {
+                    sender.sendMessage(ChatColor.RED + "指定された名前の構造体は存在しません。");
+                    return true;
+                }
+    
+                Player player = Bukkit.getPlayer(args[3]);
+                if(player == null){
+                    sender.sendMessage(ChatColor.RED + "指定されたプレイヤーが見つかりませんでした。");
+                    return true;
+                }
+    
+                parallelStructure.clearStructureData(player, true);
+                sender.sendMessage(ChatColor.GREEN + "適用しました。");
+                return true;
+            }
         }
         
         return true;
@@ -198,6 +221,7 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
             
             if(args[0].equals("structure")){
                 list.add("set-data");
+                list.add("remove-data");
             }
         
             return list;
