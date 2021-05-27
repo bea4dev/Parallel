@@ -72,7 +72,7 @@ public class MultiBlockChangePacketManager extends BukkitRunnable {
                 Object blockDataArray = c.get(packet);
     
                 for (int index = 0; index < locArray.length; index++) {
-                    for (Map.Entry<Location, BlockData> entry : parallelWorld.getBlockMap()) {
+                    for (Map.Entry<Location, BlockData> entry : parallelWorld.getBlockMap().entrySet()) {
                         Location location = entry.getKey();
                         BlockData blockData = entry.getValue();
     
@@ -92,7 +92,7 @@ public class MultiBlockChangePacketManager extends BukkitRunnable {
                 Object multiBlockChangeInfoArray = b.get(packet);
     
                 for (int index = 0; index < Array.getLength(multiBlockChangeInfoArray); index++) {
-                    for (Map.Entry<Location, BlockData> entry : parallelWorld.getBlockMap()) {
+                    for (Map.Entry<Location, BlockData> entry : parallelWorld.getBlockMap().entrySet()) {
                         Location location = entry.getKey();
                         BlockData blockData = entry.getValue();
             

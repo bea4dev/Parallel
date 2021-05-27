@@ -13,21 +13,21 @@ import java.util.AbstractMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * プレイヤーごとに違うブロックを設置するための機能をまとめたクラス
  */
 public class ParallelWorld {
     
-    private static Set<Map.Entry<String, ParallelWorld>> worldMap;
+    private static Map<String, ParallelWorld> worldMap;
     
     static {
         initialize();
     }
     
     public static void initialize(){
-        worldMap = new CopyOnWriteArraySet<>();
+        worldMap = new ConcurrentHashMap<>();
     }
     
     public static ParallelWorld getParallelWorld(Player player){
@@ -35,28 +35,26 @@ public class ParallelWorld {
     }
     
     public static ParallelWorld getParallelWorld(String uuid){
-        for(Map.Entry<String, ParallelWorld> entry : worldMap){
-            if(entry.getKey().equals(uuid)) return entry.getValue();
-        }
+        if(worldMap.containsKey(uuid)) return worldMap.get(uuid);
         return new ParallelWorld(uuid);
     }
     
     public static void removeParallelWorld(String uuid){
-        worldMap.removeIf(entry -> entry.getKey().equals(uuid));
+        worldMap.remove(uuid);
     }
     
     
     
     
     private final String uuid;
-    private final Set<Map.Entry<Location, BlockData>> blockMap;
+    private final Map<Location, BlockData> blockMap;
     
     public ParallelWorld(String uuid){
         this.uuid = uuid;
-        this.blockMap = new CopyOnWriteArraySet<>();
+        this.blockMap = new ConcurrentHashMap<>();
         
         removeParallelWorld(uuid);
-        worldMap.add(new AbstractMap.SimpleEntry<>(uuid, this));
+        worldMap.put(uuid, this);
     }
     
     public void setBlock(Block block, Material material){
@@ -68,8 +66,7 @@ public class ParallelWorld {
     }
     
     public void setBlock(Location location, BlockData blockData){
-        blockMap.removeIf(entry -> entry.getKey().equals(location));
-        blockMap.add(new AbstractMap.SimpleEntry<>(location, blockData));
+        blockMap.put(location, blockData);
     
         if(location.getChunk().isLoaded()) {
             for(Player player : Bukkit.getServer().getOnlinePlayers()) {
@@ -95,8 +92,7 @@ public class ParallelWorld {
             BlockData data = entry.getValue();
             
             Location location = block.getLocation();
-            blockMap.removeIf(e -> e.getKey().equals(location));
-            blockMap.add(new AbstractMap.SimpleEntry<>(location, data));
+            blockMap.put(location, data);
             
             chunkSet.add(block.getChunk());
         }
@@ -126,8 +122,8 @@ public class ParallelWorld {
     }
     
     public void removeBlock(Location location){
-        blockMap.removeIf(entry -> entry.getKey().equals(location));
+        blockMap.remove(location);
     }
     
-    public Set<Map.Entry<Location, BlockData>> getBlockMap() {return blockMap;}
+    public Map<Location, BlockData> getBlockMap() {return blockMap;}
 }

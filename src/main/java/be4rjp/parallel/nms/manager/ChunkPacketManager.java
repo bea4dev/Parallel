@@ -99,7 +99,7 @@ public class ChunkPacketManager extends BukkitRunnable {
         
         
             int count = 0;
-            for (Map.Entry<Location, BlockData> entry : parallelWorld.getBlockMap()) {
+            for (Map.Entry<Location, BlockData> entry : parallelWorld.getBlockMap().entrySet()) {
                 Location location = entry.getKey();
                 BlockData blockData = entry.getValue();
                 Chunk chunk = location.getChunk();
@@ -108,12 +108,14 @@ public class ChunkPacketManager extends BukkitRunnable {
                     Object iBlockData = NMSUtil.getIBlockData(blockData);
                 
                     Object newSections = NMSUtil.getChunkSections(newChunk);
-                    Object cs = Array.get(newSections, location.getBlockY() >> 4);
-                    if (cs == null) {
-                        cs = NMSUtil.createChunkSection(location.getBlockY() >> 4 << 4);
-                        Array.set(newSections, location.getBlockY() >> 4, cs);
-                    }
-                    NMSUtil.setTypeChunkSection(cs, location.getBlockX() & 15, location.getBlockY() & 15, location.getBlockZ() & 15, iBlockData);
+                    try{
+                        Object cs = Array.get(newSections, location.getBlockY() >> 4);
+                        if (cs == null) {
+                            cs = NMSUtil.createChunkSection(location.getBlockY() >> 4 << 4);
+                            Array.set(newSections, location.getBlockY() >> 4, cs);
+                        }
+                        NMSUtil.setTypeChunkSection(cs, location.getBlockX() & 15, location.getBlockY() & 15, location.getBlockZ() & 15, iBlockData);
+                    }catch (ArrayIndexOutOfBoundsException e){/**/}
                     count++;
                 }
             }
