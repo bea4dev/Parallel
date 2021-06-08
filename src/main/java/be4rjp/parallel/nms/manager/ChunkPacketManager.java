@@ -127,7 +127,6 @@ public class ChunkPacketManager extends BukkitRunnable {
         
             Object newPacket = NMSUtil.createPacketPlayOutMapChunk(newChunk, 65535);
             packetHandler.doWrite(channelHandlerContext, newPacket, channelPromise);
-            return;
         }catch (ClosedChannelException e){
         }catch (Exception e){
             e.printStackTrace();
