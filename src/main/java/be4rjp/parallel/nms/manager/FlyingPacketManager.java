@@ -43,7 +43,7 @@ public class FlyingPacketManager extends BukkitRunnable {
         try{
             boolean onGround = (boolean)f.get(packet);
             
-            if(onGround) NMSUtil.setSEtoZero(player);
+            if(onGround) NMSUtil.setCEtoZero(player);
             
             packetHandler.doRead(channelHandlerContext, packet);
         }catch (ClosedChannelException e){

@@ -1,6 +1,7 @@
 package be4rjp.parallel;
 
 import be4rjp.parallel.nms.NMSUtil;
+import be4rjp.parallel.util.ChunkLocation;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -9,10 +10,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
-import java.util.AbstractMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -47,28 +45,50 @@ public class ParallelWorld {
     
     
     private final String uuid;
-    private final Map<Location, BlockData> blockMap;
+    private final Map<ChunkLocation, Map<Location, BlockData>> chunkBlockMap;
     
-    public ParallelWorld(String uuid){
+    private ParallelWorld(String uuid){
         this.uuid = uuid;
-        this.blockMap = new ConcurrentHashMap<>();
+        this.chunkBlockMap = new ConcurrentHashMap<>();
         
         removeParallelWorld(uuid);
         worldMap.put(uuid, this);
     }
-    
-    public void setBlock(Block block, Material material){
-        setBlock(block.getLocation(), material.createBlockData());
+
+
+    /**
+     * ブロックを設置します
+     * @param block 設置したいブロック
+     * @param material 設定したいブロックのマテリアル
+     * @param blockUpdate ブロックの変更をプレイヤーに通知するかどうか
+     */
+    public void setBlock(Block block, Material material, boolean blockUpdate){
+        setBlock(block.getLocation(), material.createBlockData(), blockUpdate);
     }
-    
-    public void setBlock(Block block, BlockData blockData){
-        setBlock(block.getLocation(), blockData);
+
+
+    /**
+     * ブロックを設置します
+     * @param block 設置したいブロック
+     * @param blockData 設定したいブロックのデータ
+     * @param blockUpdate ブロックの変更をプレイヤーに通知するかどうか
+     */
+    public void setBlock(Block block, BlockData blockData, boolean blockUpdate){
+        setBlock(block.getLocation(), blockData, blockUpdate);
     }
-    
-    public void setBlock(Location location, BlockData blockData){
+
+
+    private void setBlock(Location location, BlockData blockData, boolean blockUpdate){
+        ChunkLocation chunkLocation = new ChunkLocation(location.getBlockX(), location.getBlockZ());
+
+        Map<Location, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
+        if(blockMap == null){
+            blockMap = new ConcurrentHashMap<>();
+            chunkBlockMap.put(chunkLocation, blockMap);
+        }
         blockMap.put(location, blockData);
     
-        if(location.getChunk().isLoaded()) {
+        if(location.getChunk().isLoaded() && blockUpdate) {
             for(Player player : Bukkit.getServer().getOnlinePlayers()) {
                 if (player.getUniqueId().toString().equals(uuid)) {
                     player.sendBlockChange(location, blockData);
@@ -80,7 +100,7 @@ public class ParallelWorld {
     
     
     /**
-     * 一気に大量のブロックを設置する
+     * 一気に大量のブロックを設置します
      * @param blockDataMap 置き換えるブロックとブロックデータのマップ
      * @param chunkUpdate チャンクアップデートのパケットをプレイヤーに送信するかどうか
      */
@@ -92,6 +112,13 @@ public class ParallelWorld {
             BlockData data = entry.getValue();
             
             Location location = block.getLocation();
+            ChunkLocation chunkLocation = new ChunkLocation(location.getBlockX(), location.getBlockZ());
+
+            Map<Location, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
+            if(blockMap == null){
+                blockMap = new ConcurrentHashMap<>();
+                chunkBlockMap.put(chunkLocation, blockMap);
+            }
             blockMap.put(location, data);
             
             chunkSet.add(block.getChunk());
@@ -116,14 +143,34 @@ public class ParallelWorld {
             }
         }
     }
-    
+
+
+    /**
+     * 指定されたブロックに設定されているデータを削除します
+     * @param block
+     */
     public void removeBlock(Block block){
         removeBlock(block.getLocation());
     }
-    
-    public void removeBlock(Location location){
+
+
+    private void removeBlock(Location location){
+        ChunkLocation chunkLocation = new ChunkLocation(location.getBlockX(), location.getBlockZ());
+
+        Map<Location, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
+        if(blockMap == null){
+            blockMap = new ConcurrentHashMap<>();
+            chunkBlockMap.put(chunkLocation, blockMap);
+        }
         blockMap.remove(location);
     }
-    
-    public Map<Location, BlockData> getBlockMap() {return blockMap;}
+
+
+    /**
+     * ブロックの編集を行いたい場合は必ずほかのメソッドを使用してください
+     * @return Map<ChunkLocation, Map<Location, BlockData>>
+     */
+    public Map<ChunkLocation, Map<Location, BlockData>> getChunkBlockMap() {
+        return new ConcurrentHashMap<>(chunkBlockMap);
+    }
 }

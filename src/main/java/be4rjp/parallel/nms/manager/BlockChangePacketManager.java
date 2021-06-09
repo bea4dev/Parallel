@@ -4,6 +4,7 @@ import be4rjp.parallel.ParallelWorld;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
 import be4rjp.parallel.util.BlockPosition3i;
+import be4rjp.parallel.util.ChunkLocation;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import org.bukkit.Location;
@@ -54,8 +55,8 @@ public class BlockChangePacketManager extends BukkitRunnable {
             BlockPosition3i position3i = NMSUtil.getBlockPosition3i(blockPosition);
     
             ParallelWorld parallelWorld = ParallelWorld.getParallelWorld(player);
-            
-            for (Map.Entry<Location, BlockData> entry : parallelWorld.getBlockMap().entrySet()) {
+            ChunkLocation chunkLocation = new ChunkLocation(position3i.getX(), position3i.getZ());
+            for (Map.Entry<Location, BlockData> entry : parallelWorld.getChunkBlockMap().get(chunkLocation).entrySet()) {
                 Location location = entry.getKey();
                 BlockData blockData = entry.getValue();
                 

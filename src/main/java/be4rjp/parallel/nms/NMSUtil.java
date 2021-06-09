@@ -1,6 +1,7 @@
 package be4rjp.parallel.nms;
 
 import be4rjp.parallel.util.BlockPosition3i;
+import be4rjp.parallel.util.ChunkLocation;
 import io.netty.channel.Channel;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -187,14 +188,25 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Class<?> BlockPosition = NMSUtil.getNMSClass("BlockPosition");
-        Method getX = BlockPosition.getMethod("getX");
-        Method getY = BlockPosition.getMethod("getY");
-        Method getZ = BlockPosition.getMethod("getZ");
+        Class<?> BaseBlockPosition = NMSUtil.getNMSClass("BaseBlockPosition");
+        Method getX = BaseBlockPosition.getMethod("getX");
+        Method getY = BaseBlockPosition.getMethod("getY");
+        Method getZ = BaseBlockPosition.getMethod("getZ");
         int x = (int)getX.invoke(blockPosition);
         int y = (int)getY.invoke(blockPosition);
         int z = (int)getZ.invoke(blockPosition);
         return new BlockPosition3i(x, y, z);
+    }
+
+
+    public static ChunkLocation getChunkLocation(Object chunkCoordIntPair)
+            throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
+            IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
+
+        Class<?> ChunkCoordIntPair = NMSUtil.getNMSClass("ChunkCoordIntPair");
+        int x = ChunkCoordIntPair.getField("x").getInt(chunkCoordIntPair);
+        int z = ChunkCoordIntPair.getField("z").getInt(chunkCoordIntPair);
+        return new ChunkLocation(x << 4, z << 4);
     }
     
     
@@ -252,7 +264,7 @@ public class NMSUtil {
     }
     
     
-    public static Object setSEtoZero(Player player)
+    public static void setCEtoZero(Player player)
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
@@ -269,7 +281,6 @@ public class NMSUtil {
         
         C.set(con, 0);
         E.set(con, 0);
-        return con;
     }
     
     
@@ -282,4 +293,6 @@ public class NMSUtil {
         Method fromData = CraftBlockData.getMethod("fromData", IBlockData);
         return (BlockData)fromData.invoke(null, iBlockData);
     }
+
+
 }

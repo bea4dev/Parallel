@@ -3,6 +3,7 @@ package be4rjp.parallel.nms.manager;
 import be4rjp.parallel.ParallelWorld;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
+import be4rjp.parallel.util.ChunkLocation;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import org.bukkit.Chunk;
@@ -96,10 +97,10 @@ public class ChunkPacketManager extends BukkitRunnable {
                     Array.set(newSections, y, chunkSection);
                 }
             }
-        
-        
+
+            ChunkLocation chunkLocation = new ChunkLocation(chunkX << 4, chunkZ << 4);
             int count = 0;
-            for (Map.Entry<Location, BlockData> entry : parallelWorld.getBlockMap().entrySet()) {
+            for (Map.Entry<Location, BlockData> entry : parallelWorld.getChunkBlockMap().get(chunkLocation).entrySet()) {
                 Location location = entry.getKey();
                 BlockData blockData = entry.getValue();
                 Chunk chunk = location.getChunk();
