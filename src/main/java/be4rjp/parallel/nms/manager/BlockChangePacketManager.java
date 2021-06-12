@@ -56,7 +56,12 @@ public class BlockChangePacketManager extends BukkitRunnable {
     
             ParallelWorld parallelWorld = ParallelWorld.getParallelWorld(player);
             ChunkLocation chunkLocation = new ChunkLocation(position3i.getX(), position3i.getZ());
-            for (Map.Entry<Location, BlockData> entry : parallelWorld.getChunkBlockMap().get(chunkLocation).entrySet()) {
+            Map<Location, BlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkLocation);
+            if(dataMap == null){
+                packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
+                return;
+            }
+            for (Map.Entry<Location, BlockData> entry : dataMap.entrySet()) {
                 Location location = entry.getKey();
                 BlockData blockData = entry.getValue();
                 

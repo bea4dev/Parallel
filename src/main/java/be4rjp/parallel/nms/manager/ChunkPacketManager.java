@@ -66,6 +66,13 @@ public class ChunkPacketManager extends BukkitRunnable {
         
             int chunkX = (int) a.get(packet);
             int chunkZ = (int) b.get(packet);
+    
+            ChunkLocation chunkLocation = new ChunkLocation(chunkX << 4, chunkZ << 4);
+            Map<Location, BlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkLocation);
+            if(dataMap == null){
+                packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
+                return;
+            }
         
             Object nmsWorld = NMSUtil.getNMSWorld(player.getWorld());
             Object nmsChunk = NMSUtil.getNMSChunk(player.getWorld().getChunkAt(chunkX, chunkZ));
@@ -97,10 +104,9 @@ public class ChunkPacketManager extends BukkitRunnable {
                     Array.set(newSections, y, chunkSection);
                 }
             }
-
-            ChunkLocation chunkLocation = new ChunkLocation(chunkX << 4, chunkZ << 4);
+            
             int count = 0;
-            for (Map.Entry<Location, BlockData> entry : parallelWorld.getChunkBlockMap().get(chunkLocation).entrySet()) {
+            for (Map.Entry<Location, BlockData> entry : dataMap.entrySet()) {
                 Location location = entry.getKey();
                 BlockData blockData = entry.getValue();
                 Chunk chunk = location.getChunk();
