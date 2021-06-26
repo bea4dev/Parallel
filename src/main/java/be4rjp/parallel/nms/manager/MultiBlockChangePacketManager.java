@@ -26,7 +26,7 @@ public class MultiBlockChangePacketManager extends BukkitRunnable {
     private static Field b;
     private static Field c;
     
-    private static boolean VERSION_1_16_R3 = false;
+    public static boolean VERSION_1_16_R3 = false;
     
     static {
         try {
@@ -134,4 +134,9 @@ public class MultiBlockChangePacketManager extends BukkitRunnable {
             e.printStackTrace();
         }
     }
+    
+    
+    
+    
+    
 }

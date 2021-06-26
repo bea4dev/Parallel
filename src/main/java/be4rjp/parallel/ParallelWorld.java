@@ -1,6 +1,8 @@
 package be4rjp.parallel;
 
+import be4rjp.parallel.enums.UpdatePacketType;
 import be4rjp.parallel.nms.NMSUtil;
+import be4rjp.parallel.nms.manager.MultiBlockChangePacketManager;
 import be4rjp.parallel.util.ChunkLocation;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -10,6 +12,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -100,7 +103,98 @@ public class ParallelWorld {
     
     
     /**
-     * 一気に大量のブロックを設置します
+     * 一気に大量のブロックを設置します。1.16.4以降未対応
+     * @param blockDataMap 置き換えるブロックとブロックデータのマップ
+     * @param type ブロックの変更をクライアントに適用させるためのパケットの種類。
+     *             MULTI_BLOCK_CHANGE推奨
+     */
+    @Deprecated
+    public void setBlocks(Map<Block, BlockData> blockDataMap, @Nullable UpdatePacketType type){
+        
+        if(type == null) type = UpdatePacketType.NO_UPDATE;
+    
+        Map<Chunk, Set<Block>> updateMap = new HashMap<>();
+        
+        for(Map.Entry<Block, BlockData> entry : blockDataMap.entrySet()){
+            Block block = entry.getKey();
+            BlockData data = entry.getValue();
+        
+            Location location = block.getLocation();
+            ChunkLocation chunkLocation = new ChunkLocation(location.getBlockX(), location.getBlockZ());
+        
+            Map<Location, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
+            if(blockMap == null){
+                blockMap = new ConcurrentHashMap<>();
+                chunkBlockMap.put(chunkLocation, blockMap);
+            }
+            blockMap.put(location, data);
+    
+            Set<Block> blocks = updateMap.computeIfAbsent(block.getChunk(), k -> new HashSet<>());
+            blocks.add(block);
+        }
+        
+        
+        switch (type){
+            case NO_UPDATE:{
+                break;
+            }
+            
+            case CHUNK_MAP:{
+                for(Chunk chunk : updateMap.keySet()) {
+                    if (chunk.isLoaded()){
+                        for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+                            if (player.getUniqueId().toString().equals(uuid)) {
+                                try {
+                                    Object nmsChunk = NMSUtil.getNMSChunk(chunk);
+                                    NMSUtil.sendChunkUpdatePacket(player, nmsChunk);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            
+            case MULTI_BLOCK_CHANGE:{
+                if(!MultiBlockChangePacketManager.VERSION_1_16_R3){
+                    for(Map.Entry<Chunk, Set<Block>> entry : updateMap.entrySet()) {
+                        Chunk chunk = entry.getKey();
+                        Set<Block> blocks = entry.getValue();
+                        
+                        short[] locations = new short[65535];
+                        int index = 0;
+                        for(Block block : blocks){
+                            short loc = (short) ((block.getX() & 15) << 12 | (block.getZ() & 15) << 8 | block.getY());
+                            locations[index] = loc;
+                            index++;
+                        }
+    
+                        if (chunk.isLoaded()){
+                            for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+                                if (player.getUniqueId().toString().equals(uuid)) {
+                                    try {
+                                        NMSUtil.sendLegacyMultiBlockChangePacket(player, index, locations, chunk);
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                break;
+            }
+        }
+    }
+    
+    
+    /**
+     * 一気に大量のブロックを設置します。
      * @param blockDataMap 置き換えるブロックとブロックデータのマップ
      * @param chunkUpdate チャンクアップデートのパケットをプレイヤーに送信するかどうか
      */
@@ -143,6 +237,9 @@ public class ParallelWorld {
             }
         }
     }
+    
+    
+    
 
 
     /**
