@@ -5,6 +5,7 @@ import be4rjp.parallel.util.ChunkLocation;
 import io.netty.channel.Channel;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
@@ -13,6 +14,14 @@ import java.lang.reflect.*;
 import java.util.*;
 
 public class NMSUtil {
+    
+    private static Object BLOCK_DATA_AIR;
+    
+    static {
+        try{
+            BLOCK_DATA_AIR = NMSUtil.getIBlockData(Material.AIR.createBlockData());
+        }catch (Exception e){e.printStackTrace();}
+    }
     
     //微妙にCPU負荷が小さくなるおまじないキャッシュ
     private static Map<String, Class<?>> nmsClassMap = new HashMap<>();
@@ -201,8 +210,8 @@ public class NMSUtil {
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
 
         Class<?> SectionPosition = NMSUtil.getNMSClass("SectionPosition");
-        Constructor<?> constructor = SectionPosition.getConstructor(int.class, int.class, int.class);
-        return constructor.newInstance(x, y, z);
+        Method a = SectionPosition.getMethod("a", int.class, int.class, int.class);
+        return a.invoke(null, x, y, z);
     }
 
 
@@ -272,9 +281,11 @@ public class NMSUtil {
         Class<?> IBlockData = NMSUtil.getNMSClass("IBlockData");
         Object blockDataArray = Array.newInstance(IBlockData, length);
         for(int index = 0; index < length; index++){
-            //Array.set(blockDataArray, index);
+            Array.set(blockDataArray, index, BLOCK_DATA_AIR);
         }
-
+        c.set(packet, blockDataArray);
+        
+        d.set(packet, true);
 
         Method sendPacket = getNMSClass("PlayerConnection").getMethod("sendPacket", getNMSClass("Packet"));
         sendPacket.invoke(getConnection(player), packet);

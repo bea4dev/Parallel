@@ -3,6 +3,7 @@ package be4rjp.parallel;
 import be4rjp.parallel.enums.UpdatePacketType;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.manager.MultiBlockChangePacketManager;
+import be4rjp.parallel.util.BlockPosition3i;
 import be4rjp.parallel.util.ChunkLocation;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -31,16 +32,16 @@ public class ParallelWorld {
         worldMap = new ConcurrentHashMap<>();
     }
     
-    public static ParallelWorld getParallelWorld(Player player){
+    public static synchronized ParallelWorld getParallelWorld(Player player){
         return getParallelWorld(player.getUniqueId().toString());
     }
     
-    public static ParallelWorld getParallelWorld(String uuid){
+    public static synchronized ParallelWorld getParallelWorld(String uuid){
         if(worldMap.containsKey(uuid)) return worldMap.get(uuid);
         return new ParallelWorld(uuid);
     }
     
-    public static void removeParallelWorld(String uuid){
+    public static synchronized void removeParallelWorld(String uuid){
         worldMap.remove(uuid);
     }
     
@@ -103,12 +104,10 @@ public class ParallelWorld {
     
     
     /**
-     * 一気に大量のブロックを設置します。1.16.4以降未対応
+     * 一気に大量のブロックを設置します。
      * @param blockDataMap 置き換えるブロックとブロックデータのマップ
-     * @param type ブロックの変更をクライアントに適用させるためのパケットの種類。
-     *             MULTI_BLOCK_CHANGE推奨
+     * @param type ブロックの変更をクライアントに適用させるためのパケットの種類。 MULTI_BLOCK_CHANGE推奨
      */
-    @Deprecated
     public void setBlocks(Map<Block, BlockData> blockDataMap, @Nullable UpdatePacketType type){
         
         if(type == null) type = UpdatePacketType.NO_UPDATE;
@@ -178,6 +177,38 @@ public class ParallelWorld {
                             }
                         }
                     }
+                }else{
+                    for(Set<Block> blocks : updateMap.values()) {
+                        
+                        Map<BlockPosition3i, Set<Block>> sectionMap = new HashMap<>();
+                        for(Block block : blocks){
+                            BlockPosition3i sectionPosition = new BlockPosition3i(block.getX() >> 4, block.getY() >> 4, block.getZ() >> 4);
+                            Set<Block> sectionBlocks = sectionMap.computeIfAbsent(sectionPosition, k -> new HashSet<>());
+                            sectionBlocks.add(block);
+                        }
+                        
+                        for(Map.Entry<BlockPosition3i, Set<Block>> sectionEntry : sectionMap.entrySet()){
+                            BlockPosition3i sectionPosition = sectionEntry.getKey();
+                            Set<Block> sectionBlocks = sectionEntry.getValue();
+                            
+                            Set<Short> locations = new HashSet<>();
+                            for(Block block : sectionBlocks){
+                                short location = (short) ((block.getX() & 0xF) << 8 | (block.getZ() & 0xF) << 4 | block.getY() & 0xF);
+                                locations.add(location);
+                            }
+                            
+                            short[] locationsArray = new short[locations.size()];
+                            int index = 0;
+                            for(short location : locations){
+                                locationsArray[index] = location;
+                                index++;
+                            }
+                            
+                            try {
+                                NMSUtil.sendMultiBlockChangePacket(player, locations.size(), locationsArray, sectionPosition);
+                            }catch (Exception e){e.printStackTrace();}
+                        }
+                    }
                 }
                 
                 break;
@@ -191,6 +222,7 @@ public class ParallelWorld {
      * @param blockDataMap 置き換えるブロックとブロックデータのマップ
      * @param chunkUpdate チャンクアップデートのパケットをプレイヤーに送信するかどうか
      */
+    @Deprecated
     public void setBlocks(Map<Block, BlockData> blockDataMap, boolean chunkUpdate){
         Set<Chunk> chunkSet = new HashSet<>();
         

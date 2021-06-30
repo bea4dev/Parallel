@@ -2,6 +2,7 @@ package be4rjp.parallel.structure;
 
 import be4rjp.parallel.Parallel;
 import be4rjp.parallel.ParallelWorld;
+import be4rjp.parallel.enums.UpdatePacketType;
 import be4rjp.parallel.nms.NMSUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -107,7 +108,7 @@ public class ParallelStructure {
         dataMap.put(uuid, blocks);
     
         ParallelWorld parallelWorld = ParallelWorld.getParallelWorld(uuid);
-        parallelWorld.setBlocks(blockDataMap, true);
+        parallelWorld.setBlocks(blockDataMap, UpdatePacketType.MULTI_BLOCK_CHANGE);
     }
     
     
