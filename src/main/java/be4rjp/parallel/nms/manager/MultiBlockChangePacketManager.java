@@ -88,12 +88,14 @@ public class MultiBlockChangePacketManager extends BukkitRunnable {
                     for (Map.Entry<Location, BlockData> entry : dataMap.entrySet()) {
                         Location location = entry.getKey();
                         BlockData blockData = entry.getValue();
+
+                        if((location.getBlockY() >> 4) != blockPosition3i.getY()) continue;
     
                         int x = location.getBlockX() & 0xF;
                         int y = location.getBlockY() & 0xF;
                         int z = location.getBlockZ() & 0xF;
                         
-                        short loc = (short) (x << 8 | z << 4 | y << 0);
+                        short loc = (short) (x << 8 | z << 4 | y);
                         short bLoc = locArray[index];
                         
                         if(loc == bLoc){

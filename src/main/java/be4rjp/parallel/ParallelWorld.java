@@ -132,7 +132,10 @@ public class ParallelWorld {
             Set<Block> blocks = updateMap.computeIfAbsent(block.getChunk(), k -> new HashSet<>());
             blocks.add(block);
         }
-        
+
+
+        Player player = Bukkit.getPlayer(UUID.fromString(uuid));
+        if(player == null) return;
         
         switch (type){
             case NO_UPDATE:{
@@ -142,16 +145,11 @@ public class ParallelWorld {
             case CHUNK_MAP:{
                 for(Chunk chunk : updateMap.keySet()) {
                     if (chunk.isLoaded()){
-                        for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-                            if (player.getUniqueId().toString().equals(uuid)) {
-                                try {
-                                    Object nmsChunk = NMSUtil.getNMSChunk(chunk);
-                                    NMSUtil.sendChunkUpdatePacket(player, nmsChunk);
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                                break;
-                            }
+                        try {
+                            Object nmsChunk = NMSUtil.getNMSChunk(chunk);
+                            NMSUtil.sendChunkUpdatePacket(player, nmsChunk);
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
                 }
@@ -173,15 +171,10 @@ public class ParallelWorld {
                         }
     
                         if (chunk.isLoaded()){
-                            for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-                                if (player.getUniqueId().toString().equals(uuid)) {
-                                    try {
-                                        NMSUtil.sendLegacyMultiBlockChangePacket(player, index, locations, chunk);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                    break;
-                                }
+                            try {
+                                NMSUtil.sendLegacyMultiBlockChangePacket(player, index, locations, chunk);
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
                         }
                     }
@@ -220,19 +213,16 @@ public class ParallelWorld {
     
         
         if(!chunkUpdate) return;
+        Player player = Bukkit.getPlayer(UUID.fromString(uuid));
+        if(player == null) return;
         
         for(Chunk chunk : chunkSet) {
             if (chunk.isLoaded()){
-                for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-                    if (player.getUniqueId().toString().equals(uuid)) {
-                        try {
-                            Object nmsChunk = NMSUtil.getNMSChunk(chunk);
-                            NMSUtil.sendChunkUpdatePacket(player, nmsChunk);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        break;
-                    }
+                try {
+                    Object nmsChunk = NMSUtil.getNMSChunk(chunk);
+                    NMSUtil.sendChunkUpdatePacket(player, nmsChunk);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         }

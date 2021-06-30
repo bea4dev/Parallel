@@ -9,10 +9,7 @@ import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.*;
 
 public class NMSUtil {
@@ -199,6 +196,16 @@ public class NMSUtil {
     }
 
 
+    public static Object createSectionPosition(int x, int y, int z)
+            throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
+            IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
+
+        Class<?> SectionPosition = NMSUtil.getNMSClass("SectionPosition");
+        Constructor<?> constructor = SectionPosition.getConstructor(int.class, int.class, int.class);
+        return constructor.newInstance(x, y, z);
+    }
+
+
     public static ChunkLocation getChunkLocation(Object chunkCoordIntPair)
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
@@ -239,6 +246,36 @@ public class NMSUtil {
         Class<?> PacketPlayOutMultiBlockChange = NMSUtil.getNMSClass("PacketPlayOutMultiBlockChange");
         Constructor<?> constructor = PacketPlayOutMultiBlockChange.getConstructor(int.class, short[].class, Chunk);
         Object packet = constructor.newInstance(length, locations, nmsChunk);
+        Method sendPacket = getNMSClass("PlayerConnection").getMethod("sendPacket", getNMSClass("Packet"));
+        sendPacket.invoke(getConnection(player), packet);
+    }
+
+
+    public static void sendMultiBlockChangePacket(Player player, int length, short[] locations, BlockPosition3i sectionPosition)
+            throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
+    IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
+
+        Class<?> PacketPlayOutMultiBlockChange = NMSUtil.getNMSClass("PacketPlayOutMultiBlockChange");
+        Object packet = PacketPlayOutMultiBlockChange.getConstructor().newInstance();
+        Field a = PacketPlayOutMultiBlockChange.getDeclaredField("a");
+        Field b = PacketPlayOutMultiBlockChange.getDeclaredField("b");
+        Field c = PacketPlayOutMultiBlockChange.getDeclaredField("c");
+        Field d = PacketPlayOutMultiBlockChange.getDeclaredField("d");
+        a.setAccessible(true);
+        b.setAccessible(true);
+        c.setAccessible(true);
+        d.setAccessible(true);
+
+        a.set(packet, NMSUtil.createSectionPosition(sectionPosition.getX(), sectionPosition.getY(), sectionPosition.getZ()));
+        b.set(packet, locations);
+
+        Class<?> IBlockData = NMSUtil.getNMSClass("IBlockData");
+        Object blockDataArray = Array.newInstance(IBlockData, length);
+        for(int index = 0; index < length; index++){
+            //Array.set(blockDataArray, index);
+        }
+
+
         Method sendPacket = getNMSClass("PlayerConnection").getMethod("sendPacket", getNMSClass("Packet"));
         sendPacket.invoke(getConnection(player), packet);
     }
