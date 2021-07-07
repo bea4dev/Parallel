@@ -3,11 +3,13 @@ package be4rjp.parallel.nms.manager;
 import be4rjp.parallel.ParallelWorld;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
+import be4rjp.parallel.util.BlockLocation;
 import be4rjp.parallel.util.ChunkLocation;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -68,7 +70,7 @@ public class ChunkPacketManager extends BukkitRunnable {
             int chunkZ = (int) b.get(packet);
     
             ChunkLocation chunkLocation = new ChunkLocation(chunkX << 4, chunkZ << 4);
-            Map<Location, BlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkLocation);
+            Map<BlockLocation, BlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkLocation);
             if(dataMap == null){
                 packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
                 return;
@@ -106,22 +108,24 @@ public class ChunkPacketManager extends BukkitRunnable {
             }
             
             int count = 0;
-            for (Map.Entry<Location, BlockData> entry : dataMap.entrySet()) {
-                Location location = entry.getKey();
+            for (Map.Entry<BlockLocation, BlockData> entry : dataMap.entrySet()) {
+                BlockLocation location = entry.getKey();
                 BlockData blockData = entry.getValue();
                 Chunk chunk = location.getChunk();
+
+                if(player.getWorld() != location.getWorld()) continue;
             
                 if (chunk.getX() == chunkX && chunk.getZ() == chunkZ) {
                     Object iBlockData = NMSUtil.getIBlockData(blockData);
                 
                     Object newSections = NMSUtil.getChunkSections(newChunk);
                     try{
-                        Object cs = Array.get(newSections, location.getBlockY() >> 4);
+                        Object cs = Array.get(newSections, location.getY() >> 4);
                         if (cs == null) {
-                            cs = NMSUtil.createChunkSection(location.getBlockY() >> 4 << 4);
-                            Array.set(newSections, location.getBlockY() >> 4, cs);
+                            cs = NMSUtil.createChunkSection(location.getY() >> 4 << 4);
+                            Array.set(newSections, location.getY() >> 4, cs);
                         }
-                        NMSUtil.setTypeChunkSection(cs, location.getBlockX() & 15, location.getBlockY() & 15, location.getBlockZ() & 15, iBlockData);
+                        NMSUtil.setTypeChunkSection(cs, location.getX() & 15, location.getY() & 15, location.getZ() & 15, iBlockData);
                     }catch (ArrayIndexOutOfBoundsException e){/**/}
                     count++;
                 }

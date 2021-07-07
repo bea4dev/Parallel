@@ -3,6 +3,7 @@ package be4rjp.parallel;
 import be4rjp.parallel.enums.UpdatePacketType;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.manager.MultiBlockChangePacketManager;
+import be4rjp.parallel.util.BlockLocation;
 import be4rjp.parallel.util.BlockPosition3i;
 import be4rjp.parallel.util.ChunkLocation;
 import org.bukkit.Bukkit;
@@ -49,7 +50,7 @@ public class ParallelWorld {
     
     
     private final String uuid;
-    private final Map<ChunkLocation, Map<Location, BlockData>> chunkBlockMap;
+    private final Map<ChunkLocation, Map<BlockLocation, BlockData>> chunkBlockMap;
     
     private ParallelWorld(String uuid){
         this.uuid = uuid;
@@ -67,7 +68,7 @@ public class ParallelWorld {
      * @param blockUpdate ブロックの変更をプレイヤーに通知するかどうか
      */
     public void setBlock(Block block, Material material, boolean blockUpdate){
-        setBlock(block.getLocation(), material.createBlockData(), blockUpdate);
+        setBlock(block, material.createBlockData(), blockUpdate);
     }
 
 
@@ -78,24 +79,19 @@ public class ParallelWorld {
      * @param blockUpdate ブロックの変更をプレイヤーに通知するかどうか
      */
     public void setBlock(Block block, BlockData blockData, boolean blockUpdate){
-        setBlock(block.getLocation(), blockData, blockUpdate);
-    }
+        ChunkLocation chunkLocation = new ChunkLocation(block.getX(), block.getZ());
 
-
-    private void setBlock(Location location, BlockData blockData, boolean blockUpdate){
-        ChunkLocation chunkLocation = new ChunkLocation(location.getBlockX(), location.getBlockZ());
-
-        Map<Location, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
+        Map<BlockLocation, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
         if(blockMap == null){
             blockMap = new ConcurrentHashMap<>();
             chunkBlockMap.put(chunkLocation, blockMap);
         }
-        blockMap.put(location, blockData);
-    
-        if(location.getChunk().isLoaded() && blockUpdate) {
+        blockMap.put(BlockLocation.createBlockLocation(block), blockData);
+
+        if(block.getChunk().isLoaded() && blockUpdate) {
             for(Player player : Bukkit.getServer().getOnlinePlayers()) {
                 if (player.getUniqueId().toString().equals(uuid)) {
-                    player.sendBlockChange(location, blockData);
+                    player.sendBlockChange(block.getLocation(), blockData);
                     break;
                 }
             }
@@ -121,12 +117,12 @@ public class ParallelWorld {
             Location location = block.getLocation();
             ChunkLocation chunkLocation = new ChunkLocation(location.getBlockX(), location.getBlockZ());
         
-            Map<Location, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
+            Map<BlockLocation, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
             if(blockMap == null){
                 blockMap = new ConcurrentHashMap<>();
                 chunkBlockMap.put(chunkLocation, blockMap);
             }
-            blockMap.put(location, data);
+            blockMap.put(BlockLocation.createBlockLocation(block), data);
     
             Set<Block> blocks = updateMap.computeIfAbsent(block.getChunk(), k -> new HashSet<>());
             blocks.add(block);
@@ -230,10 +226,10 @@ public class ParallelWorld {
             Block block = entry.getKey();
             BlockData data = entry.getValue();
             
-            Location location = block.getLocation();
-            ChunkLocation chunkLocation = new ChunkLocation(location.getBlockX(), location.getBlockZ());
+            BlockLocation location = BlockLocation.createBlockLocation(block);
+            ChunkLocation chunkLocation = new ChunkLocation(location.getX(), location.getZ());
 
-            Map<Location, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
+            Map<BlockLocation, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
             if(blockMap == null){
                 blockMap = new ConcurrentHashMap<>();
                 chunkBlockMap.put(chunkLocation, blockMap);
@@ -269,27 +265,20 @@ public class ParallelWorld {
      * @param block
      */
     public void removeBlock(Block block){
-        removeBlock(block.getLocation());
-    }
+        BlockLocation location = BlockLocation.createBlockLocation(block);
+        ChunkLocation chunkLocation = new ChunkLocation(location.getX(), location.getZ());
 
-
-    private void removeBlock(Location location){
-        ChunkLocation chunkLocation = new ChunkLocation(location.getBlockX(), location.getBlockZ());
-
-        Map<Location, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
-        if(blockMap == null){
-            blockMap = new ConcurrentHashMap<>();
-            chunkBlockMap.put(chunkLocation, blockMap);
-        }
+        Map<BlockLocation, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
+        if(blockMap == null) return;
         blockMap.remove(location);
     }
 
 
     /**
      * ブロックの編集を行いたい場合は必ずほかのメソッドを使用してください
-     * @return Map<ChunkLocation, Map<Location, BlockData>>
+     * @return Map<ChunkLocation, Map<BlockLocation, BlockData>>
      */
-    public Map<ChunkLocation, Map<Location, BlockData>> getChunkBlockMap() {
+    public Map<ChunkLocation, Map<BlockLocation, BlockData>> getChunkBlockMap() {
         return new ConcurrentHashMap<>(chunkBlockMap);
     }
 }

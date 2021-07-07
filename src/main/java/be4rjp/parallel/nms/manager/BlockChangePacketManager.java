@@ -3,11 +3,11 @@ package be4rjp.parallel.nms.manager;
 import be4rjp.parallel.ParallelWorld;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
+import be4rjp.parallel.util.BlockLocation;
 import be4rjp.parallel.util.BlockPosition3i;
 import be4rjp.parallel.util.ChunkLocation;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import org.bukkit.Location;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -56,16 +56,18 @@ public class BlockChangePacketManager extends BukkitRunnable {
     
             ParallelWorld parallelWorld = ParallelWorld.getParallelWorld(player);
             ChunkLocation chunkLocation = new ChunkLocation(position3i.getX(), position3i.getZ());
-            Map<Location, BlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkLocation);
+            Map<BlockLocation, BlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkLocation);
             if(dataMap == null){
                 packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
                 return;
             }
-            for (Map.Entry<Location, BlockData> entry : dataMap.entrySet()) {
-                Location location = entry.getKey();
+            for (Map.Entry<BlockLocation, BlockData> entry : dataMap.entrySet()) {
+                BlockLocation location = entry.getKey();
                 BlockData blockData = entry.getValue();
+
+                if(player.getWorld() != location.getWorld()) continue;
                 
-                if(position3i.getX() == location.getBlockX() && position3i.getY() == location.getBlockY() && position3i.getZ() == location.getBlockZ()){
+                if(position3i.getX() == location.getX() && position3i.getY() == location.getY() && position3i.getZ() == location.getZ()){
                     NMSUtil.setIBlockData(packet, NMSUtil.getIBlockData(blockData));
                     break;
                 }
