@@ -214,6 +214,14 @@ public class ParallelWorld {
     
     
     /**
+     * 設置した全てのブロックデータを消去します
+     */
+    public void removeAll(){
+        worldMap.clear();
+    }
+    
+    
+    /**
      * 一気に大量のブロックを設置します。
      * @param blockDataMap 置き換えるブロックとブロックデータのマップ
      * @param chunkUpdate チャンクアップデートのパケットをプレイヤーに送信するかどうか
