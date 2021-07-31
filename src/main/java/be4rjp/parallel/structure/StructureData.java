@@ -2,12 +2,12 @@ package be4rjp.parallel.structure;
 
 import be4rjp.parallel.Parallel;
 import be4rjp.parallel.nms.NMSUtil;
+import be4rjp.parallel.util.BlockPosition3i;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.io.IOException;
@@ -66,15 +66,17 @@ public class StructureData {
     
     
     private final String name;
-    private final Map<Vector, BlockData> blockDataMap = new HashMap<>();
+    private final Map<BlockPosition3i, BlockData> blockDataMap = new HashMap<>();
+    private final Map<BlockPosition3i, Integer> blockLightLevelMap = new HashMap<>();
     
     public StructureData(String name){
         this.name = name;
         structureDataMap.put(name, this);
     }
     
-    public Map<Vector, BlockData> getBlockDataMap() {return blockDataMap;}
+    public Map<BlockPosition3i, BlockData> getBlockDataMap() {return blockDataMap;}
     
+    public Map<BlockPosition3i, Integer> getBlockLightLevelMap() {return blockLightLevelMap;}
     
     /**
      * ブロックの状態を記録
@@ -83,10 +85,12 @@ public class StructureData {
      */
     public void setBlockData(Location baseLocation, List<Block> blocks){
         for(Block block : blocks) {
-            Vector relative = new Vector(block.getX() - baseLocation.getBlockX(), block.getY() - baseLocation.getBlockY(), block.getZ() - baseLocation.getBlockZ());
+            BlockPosition3i relative = new BlockPosition3i(block.getX() - baseLocation.getBlockX(), block.getY() - baseLocation.getBlockY(), block.getZ() - baseLocation.getBlockZ());
             BlockData blockData = block.getBlockData();
+            int blockLightLevel = block.getLightFromBlocks();
             
             this.blockDataMap.put(relative, blockData);
+            this.blockLightLevelMap.put(relative, blockLightLevel);
         }
     }
     
@@ -109,8 +113,8 @@ public class StructureData {
             int x = Integer.parseInt(args[0]);
             int y = Integer.parseInt(args[1]);
             int z = Integer.parseInt(args[2]);
-            
-            Vector relative = new Vector(x, y, z);
+    
+            BlockPosition3i relative = new BlockPosition3i(x, y, z);
             int id = Integer.parseInt(args[3]);
             try {
                 Object iBlockData = NMSUtil.getByCombinedId(id);
@@ -119,6 +123,23 @@ public class StructureData {
                 this.blockDataMap.put(relative, blockData);
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+        }
+    
+        if(yml.contains("block-lights")) {
+            lines = yml.getStringList("block-lights");
+            //x, y, z, lightLevel
+            for (String line : lines) {
+                line = line.replace(" ", "");
+                String[] args = line.split(",");
+        
+                int x = Integer.parseInt(args[0]);
+                int y = Integer.parseInt(args[1]);
+                int z = Integer.parseInt(args[2]);
+    
+                BlockPosition3i relative = new BlockPosition3i(x, y, z);
+                int lightLevel = Integer.parseInt(args[3]);
+                this.blockLightLevelMap.put(relative, lightLevel);
             }
         }
     }
@@ -132,20 +153,31 @@ public class StructureData {
         FileConfiguration yml = new YamlConfiguration();
         
         List<String> lines = new ArrayList<>();
-        for(Map.Entry<Vector, BlockData> entry : this.blockDataMap.entrySet()){
-            Vector relative = entry.getKey();
+        for(Map.Entry<BlockPosition3i, BlockData> entry : this.blockDataMap.entrySet()){
+            BlockPosition3i relative = entry.getKey();
     
             try {
                 Object iBlockData = NMSUtil.getIBlockData(entry.getValue());
                 int id = NMSUtil.getCombinedId(iBlockData);
                 
-                String line = relative.getBlockX() + ", " + relative.getBlockY() + ", " + relative.getBlockZ() + ", " + id;
+                String line = relative.getX() + ", " + relative.getY() + ", " + relative.getZ() + ", " + id;
                 lines.add(line);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
         yml.set("blocks", lines);
+    
+        List<String> lines2 = new ArrayList<>();
+        for(Map.Entry<BlockPosition3i, Integer> entry : this.blockLightLevelMap.entrySet()){
+            BlockPosition3i relative = entry.getKey();
+            int lightLevel = entry.getValue();
+            
+            String line = relative.getX() + ", " + relative.getY() + ", " + relative.getZ() + ", " + lightLevel;
+            lines2.add(line);
+        }
+        yml.set("block-lights", lines2);
+        
     
         try {
             yml.save(file);

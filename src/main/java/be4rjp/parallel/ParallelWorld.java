@@ -3,13 +3,8 @@ package be4rjp.parallel;
 import be4rjp.parallel.enums.UpdatePacketType;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.manager.MultiBlockChangePacketManager;
-import be4rjp.parallel.util.BlockLocation;
-import be4rjp.parallel.util.BlockPosition3i;
-import be4rjp.parallel.util.ChunkLocation;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import be4rjp.parallel.util.*;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
@@ -50,17 +45,31 @@ public class ParallelWorld {
     
     
     private final String uuid;
-    private final Map<ChunkLocation, Map<BlockLocation, BlockData>> chunkBlockMap;
+    private final Map<ChunkPosition, Map<BlockLocation, PBlockData>> chunkBlockMap;
+    private final Map<ChunkLocation, Object> editedPacketForChunkMap;
+    private final Map<ChunkLocation, Object> editedPacketForLightMap;
     
     private ParallelWorld(String uuid){
         this.uuid = uuid;
         this.chunkBlockMap = new ConcurrentHashMap<>();
+        this.editedPacketForChunkMap = new ConcurrentHashMap<>();
+        this.editedPacketForLightMap = new ConcurrentHashMap<>();
         
         removeParallelWorld(uuid);
         worldMap.put(uuid, this);
     }
-
-
+    
+    
+    private void addEditedChunk(ChunkPosition chunkPosition, World world){
+        ChunkLocation chunkLocation = new ChunkLocation(world, chunkPosition.x << 4, chunkPosition.z << 4);
+        this.editedPacketForChunkMap.remove(chunkLocation);
+        this.editedPacketForLightMap.remove(chunkLocation);
+    }
+    
+    public Map<ChunkLocation, Object> getEditedPacketForChunkMap() {return editedPacketForChunkMap;}
+    
+    public Map<ChunkLocation, Object> getEditedPacketForLightMap() {return editedPacketForLightMap;}
+    
     /**
      * ブロックを設置します
      * @param block 設置したいブロック
@@ -79,14 +88,16 @@ public class ParallelWorld {
      * @param blockUpdate ブロックの変更をプレイヤーに通知するかどうか
      */
     public void setBlock(Block block, BlockData blockData, boolean blockUpdate){
-        ChunkLocation chunkLocation = new ChunkLocation(block.getX(), block.getZ());
+        ChunkPosition chunkPosition = new ChunkPosition(block.getX(), block.getZ());
+        this.addEditedChunk(chunkPosition, block.getWorld());
 
-        Map<BlockLocation, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
+        Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
         if(blockMap == null){
             blockMap = new ConcurrentHashMap<>();
-            chunkBlockMap.put(chunkLocation, blockMap);
+            chunkBlockMap.put(chunkPosition, blockMap);
         }
-        blockMap.put(BlockLocation.createBlockLocation(block), blockData);
+        PBlockData pBlockData = blockMap.computeIfAbsent(BlockLocation.createBlockLocation(block), k -> new PBlockData());
+        pBlockData.setBlockData(blockData);
 
         if(block.getChunk().isLoaded() && blockUpdate) {
             for(Player player : Bukkit.getServer().getOnlinePlayers()) {
@@ -96,6 +107,25 @@ public class ParallelWorld {
                 }
             }
         }
+    }
+    
+    
+    /**
+     * ブロックのライトレベルを設定します
+     * @param block 設定したいブロック
+     * @param level 設定したいライトレベル
+     */
+    public void setLightLevel(Block block, int level){
+        ChunkPosition chunkPosition = new ChunkPosition(block.getX(), block.getZ());
+        this.addEditedChunk(chunkPosition, block.getWorld());
+        
+        Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
+        if(blockMap == null){
+            blockMap = new ConcurrentHashMap<>();
+            chunkBlockMap.put(chunkPosition, blockMap);
+        }
+        PBlockData pBlockData = blockMap.computeIfAbsent(BlockLocation.createBlockLocation(block), k -> new PBlockData());
+        pBlockData.setBlockLightLevel(Math.max(level, 15));
     }
     
     
@@ -115,14 +145,16 @@ public class ParallelWorld {
             BlockData data = entry.getValue();
         
             Location location = block.getLocation();
-            ChunkLocation chunkLocation = new ChunkLocation(location.getBlockX(), location.getBlockZ());
+            ChunkPosition chunkPosition = new ChunkPosition(location.getBlockX(), location.getBlockZ());
+            this.addEditedChunk(chunkPosition, block.getWorld());
         
-            Map<BlockLocation, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
+            Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
             if(blockMap == null){
                 blockMap = new ConcurrentHashMap<>();
-                chunkBlockMap.put(chunkLocation, blockMap);
+                chunkBlockMap.put(chunkPosition, blockMap);
             }
-            blockMap.put(BlockLocation.createBlockLocation(block), data);
+            PBlockData pBlockData = blockMap.computeIfAbsent(BlockLocation.createBlockLocation(block), k -> new PBlockData());
+            pBlockData.setBlockData(data);
     
             Set<Block> blocks = updateMap.computeIfAbsent(block.getChunk(), k -> new HashSet<>());
             blocks.add(block);
@@ -160,7 +192,7 @@ public class ParallelWorld {
                         short[] locations = new short[65535];
                         int index = 0;
                         for(Block block : blocks){
-                            short loc = (short) ((block.getX() & 15) << 12 | (block.getZ() & 15) << 8 | block.getY());
+                            short loc = (short) ((block.getX() & 0xF) << 12 | (block.getZ() & 0xF) << 8 | block.getY());
                             locations[index] = loc;
                             index++;
                         }
@@ -217,7 +249,7 @@ public class ParallelWorld {
      * 設置した全てのブロックデータを消去します
      */
     public void removeAll(){
-        worldMap.clear();
+        chunkBlockMap.clear();
     }
     
     
@@ -235,14 +267,16 @@ public class ParallelWorld {
             BlockData data = entry.getValue();
             
             BlockLocation location = BlockLocation.createBlockLocation(block);
-            ChunkLocation chunkLocation = new ChunkLocation(location.getX(), location.getZ());
+            ChunkPosition chunkPosition = new ChunkPosition(location.getX(), location.getZ());
+            this.addEditedChunk(chunkPosition, block.getWorld());
 
-            Map<BlockLocation, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
+            Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
             if(blockMap == null){
                 blockMap = new ConcurrentHashMap<>();
-                chunkBlockMap.put(chunkLocation, blockMap);
+                chunkBlockMap.put(chunkPosition, blockMap);
             }
-            blockMap.put(location, data);
+            PBlockData pBlockData = blockMap.computeIfAbsent(BlockLocation.createBlockLocation(block), k -> new PBlockData());
+            pBlockData.setBlockData(data);
             
             chunkSet.add(block.getChunk());
         }
@@ -265,6 +299,32 @@ public class ParallelWorld {
     }
     
     
+    /**
+     * 一気に大量のブロックのライトレベルを設定します。
+     * @param lightLevelMap 置き換えるブロックとブロックデータのマップ
+     */
+    public void setLightLevels(Map<Block, Integer> lightLevelMap){
+        Set<Chunk> chunkSet = new HashSet<>();
+        
+        for(Map.Entry<Block, Integer> entry : lightLevelMap.entrySet()){
+            Block block = entry.getKey();
+            int level = Math.max(entry.getValue(), 15);
+            
+            BlockLocation location = BlockLocation.createBlockLocation(block);
+            ChunkPosition chunkPosition = new ChunkPosition(location.getX(), location.getZ());
+            this.addEditedChunk(chunkPosition, block.getWorld());
+            
+            Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
+            if(blockMap == null){
+                blockMap = new ConcurrentHashMap<>();
+                chunkBlockMap.put(chunkPosition, blockMap);
+            }
+            PBlockData pBlockData = blockMap.computeIfAbsent(BlockLocation.createBlockLocation(block), k -> new PBlockData());
+            pBlockData.setBlockLightLevel(level);
+            
+            chunkSet.add(block.getChunk());
+        }
+    }
     
 
 
@@ -274,19 +334,50 @@ public class ParallelWorld {
      */
     public void removeBlock(Block block){
         BlockLocation location = BlockLocation.createBlockLocation(block);
-        ChunkLocation chunkLocation = new ChunkLocation(location.getX(), location.getZ());
+        ChunkPosition chunkPosition = new ChunkPosition(location.getX(), location.getZ());
+        this.addEditedChunk(chunkPosition, block.getWorld());
 
-        Map<BlockLocation, BlockData> blockMap = chunkBlockMap.get(chunkLocation);
+        Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
         if(blockMap == null) return;
         blockMap.remove(location);
+    }
+    
+    
+    /**
+     * ブロックデータを取得します
+     * @param block 取得したいブロック
+     * @return BlockData 見つからない場合は null を返します
+     */
+    public @Nullable BlockData getBlockData(Block block){
+        BlockLocation location = BlockLocation.createBlockLocation(block);
+        ChunkPosition chunkPosition = new ChunkPosition(location.getX(), location.getZ());
+    
+        Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
+        if(blockMap == null) return null;
+        return blockMap.get(location).getBlockData();
+    }
+    
+    
+    /**
+     * ライトレベルを取得します
+     * @param block ライトレベルを取得したいブロック
+     * @return int(0 ~ 15) 見つからない場合は -1 を返します
+     */
+    public int getBlockLightLevel(Block block){
+        BlockLocation location = BlockLocation.createBlockLocation(block);
+        ChunkPosition chunkPosition = new ChunkPosition(location.getX(), location.getZ());
+        
+        Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
+        if(blockMap == null) return -1;
+        return blockMap.get(location).getBlockLightLevel();
     }
 
 
     /**
      * ブロックの編集を行いたい場合は必ずほかのメソッドを使用してください
-     * @return Map<ChunkLocation, Map<BlockLocation, BlockData>>
+     * @return Map<ChunkLocation, Map<BlockLocation, PBlockData>>
      */
-    public Map<ChunkLocation, Map<BlockLocation, BlockData>> getChunkBlockMap() {
+    public Map<ChunkPosition, Map<BlockLocation, PBlockData>> getChunkBlockMap() {
         return new ConcurrentHashMap<>(chunkBlockMap);
     }
 }

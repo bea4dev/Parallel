@@ -1,7 +1,7 @@
 package be4rjp.parallel.nms;
 
 import be4rjp.parallel.util.BlockPosition3i;
-import be4rjp.parallel.util.ChunkLocation;
+import be4rjp.parallel.util.ChunkPosition;
 import io.netty.channel.Channel;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -215,14 +215,14 @@ public class NMSUtil {
     }
 
 
-    public static ChunkLocation getChunkLocation(Object chunkCoordIntPair)
+    public static ChunkPosition getChunkLocation(Object chunkCoordIntPair)
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
 
         Class<?> ChunkCoordIntPair = NMSUtil.getNMSClass("ChunkCoordIntPair");
         int x = ChunkCoordIntPair.getField("x").getInt(chunkCoordIntPair);
         int z = ChunkCoordIntPair.getField("z").getInt(chunkCoordIntPair);
-        return new ChunkLocation(x << 4, z << 4);
+        return new ChunkPosition(x << 4, z << 4);
     }
     
     

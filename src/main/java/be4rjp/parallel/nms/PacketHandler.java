@@ -1,9 +1,6 @@
 package be4rjp.parallel.nms;
 import be4rjp.parallel.Parallel;
-import be4rjp.parallel.nms.manager.BlockChangePacketManager;
-import be4rjp.parallel.nms.manager.ChunkPacketManager;
-import be4rjp.parallel.nms.manager.FlyingPacketManager;
-import be4rjp.parallel.nms.manager.MultiBlockChangePacketManager;
+import be4rjp.parallel.nms.manager.*;
 import io.netty.channel.*;
 import org.bukkit.entity.Player;
 
@@ -34,6 +31,12 @@ public class PacketHandler extends ChannelDuplexHandler{
         
         if(packet.getClass().getSimpleName().equalsIgnoreCase("PacketPlayOutMapChunk")){
             ChunkPacketManager manager = new ChunkPacketManager(channelHandlerContext, packet, channelPromise, this, player);
+            manager.runTaskAsynchronously(Parallel.getPlugin());
+            return;
+        }
+    
+        if(packet.getClass().getSimpleName().equalsIgnoreCase("PacketPlayOutLightUpdate")){
+            LightUpdatePacketManager manager = new LightUpdatePacketManager(channelHandlerContext, packet, channelPromise, this, player);
             manager.runTaskAsynchronously(Parallel.getPlugin());
             return;
         }

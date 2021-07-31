@@ -5,7 +5,8 @@ import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
 import be4rjp.parallel.util.BlockLocation;
 import be4rjp.parallel.util.BlockPosition3i;
-import be4rjp.parallel.util.ChunkLocation;
+import be4rjp.parallel.util.ChunkPosition;
+import be4rjp.parallel.util.PBlockData;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import org.bukkit.block.data.BlockData;
@@ -77,18 +78,19 @@ public class MultiBlockChangePacketManager extends BukkitRunnable {
                 Object blockDataArray = c.get(packet);
 
                 BlockPosition3i blockPosition3i = NMSUtil.getBlockPosition3i(a.get(packet));
-                ChunkLocation chunkLocation = new ChunkLocation(blockPosition3i.getX() << 4, blockPosition3i.getZ() << 4);
-                Map<BlockLocation, BlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkLocation);
+                ChunkPosition chunkPosition = new ChunkPosition(blockPosition3i.getX() << 4, blockPosition3i.getZ() << 4);
+                Map<BlockLocation, PBlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkPosition);
                 if(dataMap == null){
                     packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
                     return;
                 }
 
                 for (int index = 0; index < locArray.length; index++) {
-                    for (Map.Entry<BlockLocation, BlockData> entry : dataMap.entrySet()) {
+                    for (Map.Entry<BlockLocation, PBlockData> entry : dataMap.entrySet()) {
                         BlockLocation location = entry.getKey();
-                        BlockData blockData = entry.getValue();
+                        BlockData blockData = entry.getValue().getBlockData();
 
+                        if(blockData == null) continue;
                         if(player.getWorld() != location.getWorld()) continue;
 
                         if((location.getY() >> 4) != blockPosition3i.getY()) continue;
@@ -108,22 +110,23 @@ public class MultiBlockChangePacketManager extends BukkitRunnable {
             } else {
                 Object multiBlockChangeInfoArray = b.get(packet);
 
-                ChunkLocation chunkLocation = NMSUtil.getChunkLocation(a.get(packet));
-                Map<BlockLocation, BlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkLocation);
+                ChunkPosition chunkPosition = NMSUtil.getChunkLocation(a.get(packet));
+                Map<BlockLocation, PBlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkPosition);
                 if(dataMap == null){
                     packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
                     return;
                 }
                 
                 for (int index = 0; index < Array.getLength(multiBlockChangeInfoArray); index++) {
-                    for (Map.Entry<BlockLocation, BlockData> entry : dataMap.entrySet()) {
+                    for (Map.Entry<BlockLocation, PBlockData> entry : dataMap.entrySet()) {
                         BlockLocation location = entry.getKey();
-                        BlockData blockData = entry.getValue();
+                        BlockData blockData = entry.getValue().getBlockData();
 
+                        if(blockData == null) continue;
                         if(player.getWorld() != location.getWorld()) continue;
             
                         Object originalInfo = Array.get(multiBlockChangeInfoArray, index);
-                        short loc = (short) ((location.getX() & 15) << 12 | (location.getZ() & 15) << 8 | location.getY());
+                        short loc = (short) ((location.getX() & 0xF) << 12 | (location.getZ() & 0xF) << 8 | location.getY());
                         short b = (short) MultiBlockChangeInfo.getMethod("b").invoke(originalInfo);
             
                         if (loc == b) {

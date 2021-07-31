@@ -5,11 +5,11 @@ import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
 import be4rjp.parallel.util.BlockLocation;
 import be4rjp.parallel.util.ChunkLocation;
+import be4rjp.parallel.util.ChunkPosition;
+import be4rjp.parallel.util.PBlockData;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -69,10 +69,17 @@ public class ChunkPacketManager extends BukkitRunnable {
             int chunkX = (int) a.get(packet);
             int chunkZ = (int) b.get(packet);
     
-            ChunkLocation chunkLocation = new ChunkLocation(chunkX << 4, chunkZ << 4);
-            Map<BlockLocation, BlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkLocation);
+            ChunkPosition chunkPosition = new ChunkPosition(chunkX << 4, chunkZ << 4);
+            Map<BlockLocation, PBlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkPosition);
             if(dataMap == null){
                 packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
+                return;
+            }
+    
+            ChunkLocation chunkLocation = new ChunkLocation(player.getWorld(), chunkPosition.x << 4, chunkPosition.z << 4);
+            Object editedPacket = parallelWorld.getEditedPacketForChunkMap().get(chunkLocation);
+            if(editedPacket != null){
+                packetHandler.doWrite(channelHandlerContext, editedPacket, channelPromise);
                 return;
             }
         
@@ -94,10 +101,10 @@ public class ChunkPacketManager extends BukkitRunnable {
                     for (int ix = 0; ix < 16; ix++) {
                         for (int iy = 0; iy < 16; iy++) {
                             for (int iz = 0; iz < 16; iz++) {
-                                Object iBlockData = NMSUtil.getTypeChunkSection(Array.get(sections, y), (x + ix) & 15, (y + iy) & 15, (z + iz) & 15);
+                                Object iBlockData = NMSUtil.getTypeChunkSection(Array.get(sections, y), (x + ix) & 0xF, (y + iy) & 0xF, (z + iz) & 0xF);
                                 BlockData blockData = NMSUtil.getBlockData(iBlockData);
                                 Object iBlockData2 = NMSUtil.getIBlockData(blockData.clone());
-                                NMSUtil.setTypeChunkSection(chunkSection, (x + ix) & 15, (y + iy) & 15, (z + iz) & 15, iBlockData2);
+                                NMSUtil.setTypeChunkSection(chunkSection, (x + ix) & 0xF, (y + iy) & 0xF, (z + iz) & 0xF, iBlockData2);
                             }
                         }
                     }
@@ -108,11 +115,12 @@ public class ChunkPacketManager extends BukkitRunnable {
             }
             
             int count = 0;
-            for (Map.Entry<BlockLocation, BlockData> entry : dataMap.entrySet()) {
+            for (Map.Entry<BlockLocation, PBlockData> entry : dataMap.entrySet()) {
                 BlockLocation location = entry.getKey();
-                BlockData blockData = entry.getValue();
+                BlockData blockData = entry.getValue().getBlockData();
                 Chunk chunk = location.getChunk();
 
+                if(blockData == null) continue;
                 if(player.getWorld() != location.getWorld()) continue;
             
                 if (chunk.getX() == chunkX && chunk.getZ() == chunkZ) {
@@ -125,7 +133,7 @@ public class ChunkPacketManager extends BukkitRunnable {
                             cs = NMSUtil.createChunkSection(location.getY() >> 4 << 4);
                             Array.set(newSections, location.getY() >> 4, cs);
                         }
-                        NMSUtil.setTypeChunkSection(cs, location.getX() & 15, location.getY() & 15, location.getZ() & 15, iBlockData);
+                        NMSUtil.setTypeChunkSection(cs, location.getX() & 0xF, location.getY() & 0xF, location.getZ() & 0xF, iBlockData);
                     }catch (ArrayIndexOutOfBoundsException e){/**/}
                     count++;
                 }
@@ -137,6 +145,7 @@ public class ChunkPacketManager extends BukkitRunnable {
             }
         
             Object newPacket = NMSUtil.createPacketPlayOutMapChunk(newChunk, 65535);
+            parallelWorld.getEditedPacketForChunkMap().put(chunkLocation, newPacket);
             packetHandler.doWrite(channelHandlerContext, newPacket, channelPromise);
         }catch (ClosedChannelException e){
         }catch (Exception e){

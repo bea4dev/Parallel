@@ -4,6 +4,7 @@ import be4rjp.parallel.Parallel;
 import be4rjp.parallel.ParallelWorld;
 import be4rjp.parallel.enums.UpdatePacketType;
 import be4rjp.parallel.nms.NMSUtil;
+import be4rjp.parallel.util.BlockPosition3i;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -100,15 +101,26 @@ public class ParallelStructure {
         
         Map<Block, BlockData> blockDataMap = new HashMap<>();
         Set<Block> blocks = new HashSet<>();
-        for(Map.Entry<Vector, BlockData> entry : structureData.getBlockDataMap().entrySet()){
-            Block block = getBaseLocation().add(entry.getKey()).getBlock();
+        for(Map.Entry<BlockPosition3i, BlockData> entry : structureData.getBlockDataMap().entrySet()){
+            BlockPosition3i relative = entry.getKey();
+            Block block = getBaseLocation().add(relative.getX(), relative.getY(), relative.getZ()).getBlock();
             blockDataMap.put(block, entry.getValue());
             blocks.add(block);
         }
+    
+        Map<Block, Integer> blockLightLevelMap = new HashMap<>();
+        for(Map.Entry<BlockPosition3i, Integer> entry : structureData.getBlockLightLevelMap().entrySet()){
+            BlockPosition3i relative = entry.getKey();
+            Block block = getBaseLocation().add(relative.getX(), relative.getY(), relative.getZ()).getBlock();
+            blockLightLevelMap.put(block, entry.getValue());
+            blocks.add(block);
+        }
+        
         dataMap.put(uuid, blocks);
     
         ParallelWorld parallelWorld = ParallelWorld.getParallelWorld(uuid);
         parallelWorld.setBlocks(blockDataMap, UpdatePacketType.MULTI_BLOCK_CHANGE);
+        parallelWorld.setLightLevels(blockLightLevelMap);
     }
     
     
