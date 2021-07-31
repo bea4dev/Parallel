@@ -24,6 +24,7 @@
     <groupId>com.github.Be4rJP</groupId>
     <artifactId>Parallel</artifactId>
     <version>v1.0.8</version>
+    <scope>provided</scope>
 </dependency>
 ```
 

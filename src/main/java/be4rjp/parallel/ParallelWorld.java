@@ -125,7 +125,9 @@ public class ParallelWorld {
             chunkBlockMap.put(chunkPosition, blockMap);
         }
         PBlockData pBlockData = blockMap.computeIfAbsent(BlockLocation.createBlockLocation(block), k -> new PBlockData());
-        pBlockData.setBlockLightLevel(Math.max(level, 15));
+        level = Math.max(level, 0);
+        level = Math.min(level, 15);
+        pBlockData.setBlockLightLevel(level);
     }
     
     
@@ -308,7 +310,8 @@ public class ParallelWorld {
         
         for(Map.Entry<Block, Integer> entry : lightLevelMap.entrySet()){
             Block block = entry.getKey();
-            int level = Math.max(entry.getValue(), 15);
+            int level = Math.min(entry.getValue(), 15);
+            level = Math.max(level, 0);
             
             BlockLocation location = BlockLocation.createBlockLocation(block);
             ChunkPosition chunkPosition = new ChunkPosition(location.getX(), location.getZ());
