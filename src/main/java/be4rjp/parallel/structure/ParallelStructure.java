@@ -15,6 +15,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -90,13 +91,21 @@ public class ParallelStructure {
         this.setStructureData(player.getUniqueId().toString(), structureData);
     }
     
+    /**
+     * この構造物を指定された構造物データを適応して特定のプレイヤーへ見せる
+     * @param uuid 構造物を変化させて見せるプレイヤーのuuid
+     * @param structureData 構造物データ
+     */
+    public void setStructureData(String uuid, StructureData structureData) {
+        this.setStructureData(uuid, structureData, UpdatePacketType.MULTI_BLOCK_CHANGE);
+    }
     
     /**
      * この構造物を指定された構造物データを適応して特定のプレイヤーへ見せる
      * @param uuid 構造物を変化させて見せるプレイヤーのuuid
      * @param structureData 構造物データ
      */
-    public void setStructureData(String uuid, StructureData structureData){
+    public void setStructureData(String uuid, StructureData structureData, @Nullable UpdatePacketType type){
         clearStructureData(uuid, false);
         
         Map<Block, BlockData> blockDataMap = new HashMap<>();
@@ -119,7 +128,7 @@ public class ParallelStructure {
         dataMap.put(uuid, blocks);
     
         ParallelWorld parallelWorld = ParallelWorld.getParallelWorld(uuid);
-        parallelWorld.setBlocks(blockDataMap, UpdatePacketType.MULTI_BLOCK_CHANGE);
+        parallelWorld.setBlocks(blockDataMap, type);
         parallelWorld.setLightLevels(blockLightLevelMap);
     }
     

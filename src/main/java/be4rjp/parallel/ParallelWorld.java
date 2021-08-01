@@ -20,8 +20,11 @@ public class ParallelWorld {
     
     private static Map<String, ParallelWorld> worldMap;
     
+    private static final ParallelWorld onlyOneWorld;
+    
     static {
         initialize();
+        onlyOneWorld = new ParallelWorld("");
     }
     
     public static void initialize(){
@@ -33,8 +36,12 @@ public class ParallelWorld {
     }
     
     public static synchronized ParallelWorld getParallelWorld(String uuid){
-        if(worldMap.containsKey(uuid)) return worldMap.get(uuid);
-        return new ParallelWorld(uuid);
+        if(Config.getWorkType() == Config.WorkType.NORMAL) {
+            if (worldMap.containsKey(uuid)) return worldMap.get(uuid);
+            return new ParallelWorld(uuid);
+        }else{
+            return onlyOneWorld;
+        }
     }
     
     public static synchronized void removeParallelWorld(String uuid){
@@ -162,15 +169,33 @@ public class ParallelWorld {
             blocks.add(block);
         }
 
-
-        Player player = Bukkit.getPlayer(UUID.fromString(uuid));
-        if(player == null) return;
         
+        if(Config.getWorkType() == Config.WorkType.NORMAL) {
+            Player player = Bukkit.getPlayer(UUID.fromString(uuid));
+            if (player == null) return;
+            this.sendUpdatePacket(player, type, updateMap);
+        }else{
+            Set<Player> players = new HashSet<>(Bukkit.getOnlinePlayers());
+            for(Player player : players){
+                this.sendUpdatePacket(player, type, updateMap);
+            }
+        }
+        
+    }
+    
+    
+    /**
+     * ブロックのアップデートパケットを送信します
+     * @param player 送信するプレイヤー
+     * @param type 送信するパケットの種類
+     * @param updateMap アップデートしたいチャンクとブロックのSetのマップ
+     */
+    public void sendUpdatePacket(Player player, UpdatePacketType type, Map<Chunk, Set<Block>> updateMap){
         switch (type){
             case NO_UPDATE:{
                 break;
             }
-            
+        
             case CHUNK_MAP:{
                 for(Chunk chunk : updateMap.keySet()) {
                     if (chunk.isLoaded()){
@@ -184,13 +209,13 @@ public class ParallelWorld {
                 }
                 break;
             }
-            
+        
             case MULTI_BLOCK_CHANGE:{
                 if(!MultiBlockChangePacketManager.VERSION_1_16_R3){
                     for(Map.Entry<Chunk, Set<Block>> entry : updateMap.entrySet()) {
                         Chunk chunk = entry.getKey();
                         Set<Block> blocks = entry.getValue();
-                        
+                    
                         short[] locations = new short[65535];
                         int index = 0;
                         for(Block block : blocks){
@@ -198,7 +223,7 @@ public class ParallelWorld {
                             locations[index] = loc;
                             index++;
                         }
-    
+                    
                         if (chunk.isLoaded()){
                             try {
                                 NMSUtil.sendLegacyMultiBlockChangePacket(player, index, locations, chunk);
@@ -209,38 +234,38 @@ public class ParallelWorld {
                     }
                 }else{
                     for(Set<Block> blocks : updateMap.values()) {
-                        
+                    
                         Map<BlockPosition3i, Set<Block>> sectionMap = new HashMap<>();
                         for(Block block : blocks){
                             BlockPosition3i sectionPosition = new BlockPosition3i(block.getX() >> 4, block.getY() >> 4, block.getZ() >> 4);
                             Set<Block> sectionBlocks = sectionMap.computeIfAbsent(sectionPosition, k -> new HashSet<>());
                             sectionBlocks.add(block);
                         }
-                        
+                    
                         for(Map.Entry<BlockPosition3i, Set<Block>> sectionEntry : sectionMap.entrySet()){
                             BlockPosition3i sectionPosition = sectionEntry.getKey();
                             Set<Block> sectionBlocks = sectionEntry.getValue();
-                            
+                        
                             Set<Short> locations = new HashSet<>();
                             for(Block block : sectionBlocks){
                                 short location = (short) ((block.getX() & 0xF) << 8 | (block.getZ() & 0xF) << 4 | block.getY() & 0xF);
                                 locations.add(location);
                             }
-                            
+                        
                             short[] locationsArray = new short[locations.size()];
                             int index = 0;
                             for(short location : locations){
                                 locationsArray[index] = location;
                                 index++;
                             }
-                            
+                        
                             try {
                                 NMSUtil.sendMultiBlockChangePacket(player, locations.size(), locationsArray, sectionPosition);
                             }catch (Exception e){e.printStackTrace();}
                         }
                     }
                 }
-                
+            
                 break;
             }
         }

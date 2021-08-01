@@ -15,6 +15,9 @@ public final class Parallel extends JavaPlugin {
     public void onEnable() {
         // Plugin startup logic
         plugin = this;
+        
+        //Load config
+        Config.load();
     
         //Register event listeners
         getLogger().info("Registering event listeners...");

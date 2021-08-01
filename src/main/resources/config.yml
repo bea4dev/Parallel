@@ -1,0 +1,6 @@
+
+# 動作モードの設定
+# NORMAL or ONLY_ONE
+# ONLY_ONEに設定した場合は全てのプレイヤーに対して同じParallelWorldが使われるようになります
+
+work-type: NORMAL
