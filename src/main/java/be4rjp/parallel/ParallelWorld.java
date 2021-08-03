@@ -382,7 +382,11 @@ public class ParallelWorld {
     
         Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
         if(blockMap == null) return null;
-        return blockMap.get(location).getBlockData();
+        
+        PBlockData pBlockData = blockMap.get(location);
+        if(pBlockData == null) return null;
+        
+        return pBlockData.getBlockData();
     }
     
     
@@ -397,7 +401,11 @@ public class ParallelWorld {
         
         Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
         if(blockMap == null) return -1;
-        return blockMap.get(location).getBlockLightLevel();
+    
+        PBlockData pBlockData = blockMap.get(location);
+        if(pBlockData == null) return -1;
+    
+        return pBlockData.getBlockLightLevel();
     }
 
 
