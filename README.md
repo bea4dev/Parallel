@@ -23,7 +23,7 @@
 <dependency>
     <groupId>com.github.Be4rJP</groupId>
     <artifactId>Parallel</artifactId>
-    <version>v1.0.8</version>
+    <version>v1.0.9</version>
     <scope>provided</scope>
 </dependency>
 ```

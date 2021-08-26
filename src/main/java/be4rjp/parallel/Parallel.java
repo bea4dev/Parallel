@@ -4,6 +4,7 @@ import be4rjp.parallel.cinema4c.BridgeManager;
 import be4rjp.parallel.command.parallelCommandExecutor;
 import be4rjp.parallel.structure.ParallelStructure;
 import be4rjp.parallel.structure.StructureData;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -25,10 +26,12 @@ public final class Parallel extends JavaPlugin {
         pluginManager.registerEvents(new EventListener(), this);
     
     
-        //Register command executors
-        getLogger().info("Registering command executors...");
-        getCommand("parallel").setExecutor(new parallelCommandExecutor());
-        getCommand("parallel").setTabCompleter(new parallelCommandExecutor());
+        if(Bukkit.getPluginManager().getPlugin("WorldEdit") != null) {
+            //Register command executors
+            getLogger().info("Registering command executors...");
+            getCommand("parallel").setExecutor(new parallelCommandExecutor());
+            getCommand("parallel").setTabCompleter(new parallelCommandExecutor());
+        }
     
         
         //For cinema4c extensions

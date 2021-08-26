@@ -1,5 +1,6 @@
 package be4rjp.parallel.nms.manager;
 
+import be4rjp.parallel.Config;
 import be4rjp.parallel.ParallelWorld;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
@@ -119,7 +120,7 @@ public class LightUpdatePacketManager extends BukkitRunnable {
     
             ChunkLocation chunkLocation = new ChunkLocation(player.getWorld(), chunkPosition.x << 4, chunkPosition.z << 4);
             Object editedPacket = parallelWorld.getEditedPacketForLightMap().get(chunkLocation);
-            if(editedPacket != null){
+            if(editedPacket != null && Config.isPerformanceMode()){
                 packetHandler.doWrite(channelHandlerContext, editedPacket, channelPromise);
                 return;
             }
