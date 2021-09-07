@@ -382,6 +382,7 @@ public class ParallelWorld {
      */
     public void removeBlock(Block block, boolean update){
         removeBlock(block);
+        if(!update) return;
         Player player = Bukkit.getPlayer(uuid);
         if(player != null) player.sendBlockChange(block.getLocation(), block.getBlockData());
     }
