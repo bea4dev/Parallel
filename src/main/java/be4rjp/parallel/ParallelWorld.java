@@ -18,13 +18,13 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ParallelWorld {
     
-    private static Map<String, ParallelWorld> worldMap;
+    private static Map<UUID, ParallelWorld> worldMap;
     
     private static final ParallelWorld onlyOneWorld;
     
     static {
         initialize();
-        onlyOneWorld = new ParallelWorld("");
+        onlyOneWorld = new ParallelWorld(UUID.randomUUID());
     }
     
     public static void initialize(){
@@ -32,10 +32,14 @@ public class ParallelWorld {
     }
     
     public static synchronized ParallelWorld getParallelWorld(Player player){
-        return getParallelWorld(player.getUniqueId().toString());
+        return getParallelWorld(player.getUniqueId());
     }
     
-    public static synchronized ParallelWorld getParallelWorld(String uuid){
+    public static synchronized ParallelWorld getParallelWorld(String uuidString){
+        return getParallelWorld(UUID.fromString(uuidString));
+    }
+    
+    public static synchronized ParallelWorld getParallelWorld(UUID uuid){
         if(Config.getWorkType() == Config.WorkType.NORMAL) {
             if (worldMap.containsKey(uuid)) return worldMap.get(uuid);
             return new ParallelWorld(uuid);
@@ -45,18 +49,22 @@ public class ParallelWorld {
     }
     
     public static synchronized void removeParallelWorld(String uuid){
+        worldMap.remove(UUID.fromString(uuid));
+    }
+    
+    public static synchronized void removeParallelWorld(UUID uuid){
         worldMap.remove(uuid);
     }
     
     
     
     
-    private final String uuid;
+    private final UUID uuid;
     private final Map<ChunkPosition, Map<BlockLocation, PBlockData>> chunkBlockMap;
     private final Map<ChunkLocation, Object> editedPacketForChunkMap;
     private final Map<ChunkLocation, Object> editedPacketForLightMap;
     
-    private ParallelWorld(String uuid){
+    private ParallelWorld(UUID uuid){
         this.uuid = uuid;
         this.chunkBlockMap = new ConcurrentHashMap<>();
         this.editedPacketForChunkMap = new ConcurrentHashMap<>();
@@ -107,12 +115,8 @@ public class ParallelWorld {
         pBlockData.setBlockData(blockData);
 
         if(block.getChunk().isLoaded() && blockUpdate) {
-            for(Player player : Bukkit.getServer().getOnlinePlayers()) {
-                if (player.getUniqueId().toString().equals(uuid)) {
-                    player.sendBlockChange(block.getLocation(), blockData);
-                    break;
-                }
-            }
+            Player player = Bukkit.getPlayer(uuid);
+            if(player != null) player.sendBlockChange(block.getLocation(), blockData);
         }
     }
     
@@ -171,7 +175,7 @@ public class ParallelWorld {
 
         
         if(Config.getWorkType() == Config.WorkType.NORMAL) {
-            Player player = Bukkit.getPlayer(UUID.fromString(uuid));
+            Player player = Bukkit.getPlayer(uuid);
             if (player == null) return;
             this.sendUpdatePacket(player, type, updateMap);
         }else{
@@ -310,7 +314,7 @@ public class ParallelWorld {
     
         
         if(!chunkUpdate) return;
-        Player player = Bukkit.getPlayer(UUID.fromString(uuid));
+        Player player = Bukkit.getPlayer(uuid);
         if(player == null) return;
         
         for(Chunk chunk : chunkSet) {
@@ -358,7 +362,7 @@ public class ParallelWorld {
 
     /**
      * 指定されたブロックに設定されているデータを削除します
-     * @param block
+     * @param block データを削除するブロック
      */
     public void removeBlock(Block block){
         BlockLocation location = BlockLocation.createBlockLocation(block);
@@ -368,6 +372,55 @@ public class ParallelWorld {
         Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
         if(blockMap == null) return;
         blockMap.remove(location);
+    }
+    
+    
+    /**
+     * 指定されたブロックに設定されているデータを削除します
+     * @param block データを削除するブロック
+     * @param update ブロックの変更をプレイヤーに通知するかどうか
+     */
+    public void removeBlock(Block block, boolean update){
+        removeBlock(block);
+        Player player = Bukkit.getPlayer(uuid);
+        if(player != null) player.sendBlockChange(block.getLocation(), block.getBlockData());
+    }
+    
+    /**
+     * 一気に大量のブロックのデータを削除します。
+     * @param blocks データを削除するブロック
+     * @param type ブロックの変更をクライアントに適用させるためのパケットの種類。 MULTI_BLOCK_CHANGE推奨
+     */
+    public void removeBlocks(Set<Block> blocks, @Nullable UpdatePacketType type){
+        if(type == null) type = UpdatePacketType.NO_UPDATE;
+    
+        Map<Chunk, Set<Block>> updateMap = new HashMap<>();
+    
+        for(Block block : blocks){
+            Location location = block.getLocation();
+            ChunkPosition chunkPosition = new ChunkPosition(location.getBlockX(), location.getBlockZ());
+            this.addEditedChunk(chunkPosition, block.getWorld());
+        
+            Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
+            if(blockMap != null){
+                blockMap.remove(BlockLocation.createBlockLocation(block));
+            }
+        
+            Set<Block> updateBlocks = updateMap.computeIfAbsent(block.getChunk(), k -> new HashSet<>());
+            updateBlocks.add(block);
+        }
+    
+    
+        if(Config.getWorkType() == Config.WorkType.NORMAL) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player == null) return;
+            this.sendUpdatePacket(player, type, updateMap);
+        }else{
+            Set<Player> players = new HashSet<>(Bukkit.getOnlinePlayers());
+            for(Player player : players){
+                this.sendUpdatePacket(player, type, updateMap);
+            }
+        }
     }
     
     

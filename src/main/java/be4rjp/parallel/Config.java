@@ -10,9 +10,13 @@ public class Config {
     
     private static boolean performanceMode = false;
     
+    private static boolean rewriteLightPacket = true;
+    
     public static WorkType getWorkType() {return workType;}
     
     public static boolean isPerformanceMode() {return performanceMode;}
+    
+    public static boolean isRewriteLightPacket() {return rewriteLightPacket;}
     
     public static void load(){
         File file = new File("plugins/Parallel", "config.yml");
@@ -27,6 +31,7 @@ public class Config {
         
         if(yml.contains("work-type")) workType = WorkType.valueOf(yml.getString("work-type"));
         if(yml.contains("performance-mode")) performanceMode = yml.getBoolean("performance-mode");
+        if(yml.contains("rewrite-light-packet")) rewriteLightPacket = yml.getBoolean("rewrite-light-packet");
     }
     
     public enum WorkType{

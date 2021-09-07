@@ -1,4 +1,5 @@
 package be4rjp.parallel.nms;
+import be4rjp.parallel.Config;
 import be4rjp.parallel.Parallel;
 import be4rjp.parallel.nms.manager.*;
 import io.netty.channel.*;
@@ -35,7 +36,7 @@ public class PacketHandler extends ChannelDuplexHandler{
             return;
         }
     
-        if(packet.getClass().getSimpleName().equalsIgnoreCase("PacketPlayOutLightUpdate")){
+        if(packet.getClass().getSimpleName().equalsIgnoreCase("PacketPlayOutLightUpdate") && Config.isRewriteLightPacket()){
             LightUpdatePacketManager manager = new LightUpdatePacketManager(channelHandlerContext, packet, channelPromise, this, player);
             manager.runTaskAsynchronously(Parallel.getPlugin());
             return;
