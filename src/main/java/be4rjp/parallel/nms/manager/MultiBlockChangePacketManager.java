@@ -139,6 +139,7 @@ public class MultiBlockChangePacketManager extends BukkitRunnable {
     
             packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
         }catch (ClosedChannelException e){
+            //None
         }catch (Exception e){
             e.printStackTrace();
         }

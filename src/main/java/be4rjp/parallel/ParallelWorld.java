@@ -390,8 +390,9 @@ public class ParallelWorld {
     /**
      * 一気に大量のブロックのデータを削除します。
      * @param blocks データを削除するブロック
-     * @param type ブロックの変更をクライアントに適用させるためのパケットの種類。 MULTI_BLOCK_CHANGE推奨
+     * @param type ブロックの変更をクライアントに適用させるためのパケットの種類。 MULTI_BLOCK_CHANGEは動作不良を起こす可能性があるため非推奨
      */
+    @Deprecated
     public void removeBlocks(Set<Block> blocks, @Nullable UpdatePacketType type){
         if(type == null) type = UpdatePacketType.NO_UPDATE;
     
@@ -420,6 +421,43 @@ public class ParallelWorld {
             Set<Player> players = new HashSet<>(Bukkit.getOnlinePlayers());
             for(Player player : players){
                 this.sendUpdatePacket(player, type, updateMap);
+            }
+        }
+    }
+    
+    /**
+     * 一気に大量のブロックのデータを削除します。
+     * @param blocks データを削除するブロック
+     * @param update ブロックの変更をクライアントに通知するかどうか
+     */
+    public void removeBlocks(Set<Block> blocks, boolean update){
+        Map<Chunk, Set<Block>> updateMap = new HashMap<>();
+        
+        for(Block block : blocks){
+            Location location = block.getLocation();
+            ChunkPosition chunkPosition = new ChunkPosition(location.getBlockX(), location.getBlockZ());
+            this.addEditedChunk(chunkPosition, block.getWorld());
+            
+            Map<BlockLocation, PBlockData> blockMap = chunkBlockMap.get(chunkPosition);
+            if(blockMap != null){
+                blockMap.remove(BlockLocation.createBlockLocation(block));
+            }
+            
+            Set<Block> updateBlocks = updateMap.computeIfAbsent(block.getChunk(), k -> new HashSet<>());
+            updateBlocks.add(block);
+        }
+        
+        
+        if(update) {
+            if (Config.getWorkType() == Config.WorkType.NORMAL) {
+                Player player = Bukkit.getPlayer(uuid);
+                if (player == null) return;
+                this.sendUpdatePacket(player, UpdatePacketType.CHUNK_MAP, updateMap);
+            } else {
+                Set<Player> players = new HashSet<>(Bukkit.getOnlinePlayers());
+                for (Player player : players) {
+                    this.sendUpdatePacket(player, UpdatePacketType.CHUNK_MAP, updateMap);
+                }
             }
         }
     }
