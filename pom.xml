@@ -107,5 +107,11 @@
             <version>e1a2df2c89</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.Be4rJP</groupId>
+            <artifactId>ChiyogamiLib</artifactId>
+            <version>71d7778b4c</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 </project>
