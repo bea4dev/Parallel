@@ -1,14 +1,18 @@
 package be4rjp.parallel;
 
+import be4rjp.parallel.chunk.AsyncChunkCash;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
+import org.bukkit.Chunk;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 
 public class EventListener implements Listener {
     
@@ -43,5 +47,14 @@ public class EventListener implements Listener {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @EventHandler
+    public void onChunkLoad(ChunkLoadEvent event){
+        World world = event.getWorld();
+        Chunk chunk = event.getChunk();
+
+        AsyncChunkCash asyncChunkCash = AsyncChunkCash.computeIfAbsentWorldAsyncChunkCash(world.getName());
+        asyncChunkCash.addLoadedChunk(chunk);
     }
 }

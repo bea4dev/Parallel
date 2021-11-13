@@ -1,7 +1,9 @@
 package be4rjp.parallel.nms.manager;
 
 import be4rjp.parallel.Config;
+import be4rjp.parallel.Parallel;
 import be4rjp.parallel.ParallelWorld;
+import be4rjp.parallel.chunk.AsyncChunkCash;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
 import be4rjp.parallel.util.BlockLocation;
@@ -85,7 +87,20 @@ public class ChunkPacketManager extends BukkitRunnable {
             }
         
             Object nmsWorld = NMSUtil.getNMSWorld(player.getWorld());
-            Object nmsChunk = NMSUtil.getNMSChunk(player.getWorld().getChunkAt(chunkX, chunkZ));
+
+            AsyncChunkCash asyncChunkCash = AsyncChunkCash.getWorldAsyncChunkCash(player.getWorld().getName());
+            if(asyncChunkCash == null){
+                packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
+                sendChunkWarnMessage();
+                return;
+            }
+
+            Object nmsChunk = asyncChunkCash.getCashedChunk(chunkX, chunkZ);
+            if(nmsChunk == null){
+                packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
+                sendChunkWarnMessage();
+                return;
+            }
         
             Object newChunk = NMSUtil.createChunk(nmsWorld, loc.get(nmsChunk), d.get(nmsChunk));
         
@@ -149,8 +164,13 @@ public class ChunkPacketManager extends BukkitRunnable {
             parallelWorld.getEditedPacketForChunkMap().put(chunkLocation, newPacket);
             packetHandler.doWrite(channelHandlerContext, newPacket, channelPromise);
         }catch (ClosedChannelException e){
+            //None
         }catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    public static void sendChunkWarnMessage(){
+        if(Config.isShowChunkPacketWarning()) Parallel.getPlugin().getLogger().warning("Attempted to send a packet with an unloaded chunk.");
     }
 }
