@@ -1,5 +1,7 @@
 package be4rjp.parallel;
 
+import be4rjp.parallel.chiyogami.ChiyogamiManager;
+import be4rjp.parallel.chunk.AsyncChunkCache;
 import be4rjp.parallel.enums.UpdatePacketType;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.manager.MultiBlockChangePacketManager;
@@ -11,6 +13,7 @@ import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -64,11 +67,15 @@ public class ParallelWorld {
     private final Map<ChunkLocation, Object> editedPacketForChunkMap;
     private final Map<ChunkLocation, Object> editedPacketForLightMap;
     
+    private final Object wrappedParallelWorld;
+    
     private ParallelWorld(UUID uuid){
         this.uuid = uuid;
         this.chunkBlockMap = new ConcurrentHashMap<>();
         this.editedPacketForChunkMap = new ConcurrentHashMap<>();
         this.editedPacketForLightMap = new ConcurrentHashMap<>();
+        
+        this.wrappedParallelWorld = ChiyogamiManager.getWrappedParallelWorld(uuid);
         
         removeParallelWorld(uuid);
         worldMap.put(uuid, this);
@@ -95,6 +102,28 @@ public class ParallelWorld {
         setBlock(block, material.createBlockData(), blockUpdate);
     }
 
+    private CompletableFuture<Object> getChunkCacheAsync(Block block){
+        return this.getChunkCacheAsync(new ChunkLocation(block.getWorld(), block.getX(), block.getZ()));
+    }
+    
+    private CompletableFuture<Object> getChunkCacheAsync(ChunkLocation chunkLocation){
+        CompletableFuture<Object> nmsChunkCompletable = new CompletableFuture<>();
+        
+        AsyncChunkCache asyncChunkCache = AsyncChunkCache.computeIfAbsentWorldAsyncChunkCash(chunkLocation.world.getName());
+        
+        Object nmsChunk = asyncChunkCache.getCashedChunk(chunkLocation.x, chunkLocation.z);
+        if(nmsChunk != null){
+            TaskHandler.runAsync(() -> nmsChunkCompletable.complete(nmsChunk));
+            return nmsChunkCompletable;
+        }
+    
+        chunkLocation.world.getChunkAtAsync(chunkLocation.x, chunkLocation.z).thenAccept(chunk -> {
+            Object nmsChunk2 = asyncChunkCache.addLoadedChunk(chunk);
+            TaskHandler.runAsync(() -> nmsChunkCompletable.complete(nmsChunk2));
+        });
+        
+        return nmsChunkCompletable;
+    }
 
     /**
      * ブロックを設置します
@@ -103,6 +132,8 @@ public class ParallelWorld {
      * @param blockUpdate ブロックの変更をプレイヤーに通知するかどうか
      */
     public void setBlock(Block block, BlockData blockData, boolean blockUpdate){
+        ChiyogamiManager.addEditedBlock(block.getWorld(), block.getX(), block.getY(), block.getZ(), wrappedParallelWorld);
+        
         ChunkPosition chunkPosition = new ChunkPosition(block.getX(), block.getZ());
         this.addEditedChunk(chunkPosition, block.getWorld());
 
@@ -114,10 +145,12 @@ public class ParallelWorld {
         PBlockData pBlockData = blockMap.computeIfAbsent(BlockLocation.createBlockLocation(block), k -> new PBlockData());
         pBlockData.setBlockData(blockData);
 
-        if(block.getChunk().isLoaded() && blockUpdate) {
-            Player player = Bukkit.getPlayer(uuid);
-            if(player != null) player.sendBlockChange(block.getLocation(), blockData);
-        }
+        this.getChunkCacheAsync(block).thenAccept(nmsChunk -> {
+            if(blockUpdate) {
+                Player player = Bukkit.getPlayer(uuid);
+                if(player != null) player.sendBlockChange(block.getLocation(), blockData);
+            }
+        });
     }
     
     
@@ -151,11 +184,13 @@ public class ParallelWorld {
         
         if(type == null) type = UpdatePacketType.NO_UPDATE;
     
-        Map<Chunk, Set<Block>> updateMap = new HashMap<>();
+        Map<ChunkLocation, Set<Block>> updateMap = new HashMap<>();
         
         for(Map.Entry<Block, BlockData> entry : blockDataMap.entrySet()){
             Block block = entry.getKey();
             BlockData data = entry.getValue();
+    
+            ChiyogamiManager.addEditedBlock(block.getWorld(), block.getX(), block.getY(), block.getZ(), wrappedParallelWorld);
         
             Location location = block.getLocation();
             ChunkPosition chunkPosition = new ChunkPosition(location.getBlockX(), location.getBlockZ());
@@ -169,22 +204,26 @@ public class ParallelWorld {
             PBlockData pBlockData = blockMap.computeIfAbsent(BlockLocation.createBlockLocation(block), k -> new PBlockData());
             pBlockData.setBlockData(data);
     
-            Set<Block> blocks = updateMap.computeIfAbsent(block.getChunk(), k -> new HashSet<>());
+            Set<Block> blocks = updateMap.computeIfAbsent(new ChunkLocation(block.getWorld(), block.getX(), block.getZ()), k -> new HashSet<>());
             blocks.add(block);
         }
-
-        
-        if(Config.getWorkType() == Config.WorkType.NORMAL) {
-            Player player = Bukkit.getPlayer(uuid);
-            if (player == null) return;
-            this.sendUpdatePacket(player, type, updateMap);
-        }else{
-            Set<Player> players = new HashSet<>(Bukkit.getOnlinePlayers());
-            for(Player player : players){
-                this.sendUpdatePacket(player, type, updateMap);
+    
+        UpdatePacketType finalType = type;
+        CompletableFutureSet completableFutures = new CompletableFutureSet(updateMap.size(), () -> {
+            if(Config.getWorkType() == Config.WorkType.NORMAL) {
+                Player player = Bukkit.getPlayer(uuid);
+                if (player == null) return;
+                this.sendUpdatePacket(player, finalType, updateMap);
+            }else{
+                Set<Player> players = new HashSet<>(Bukkit.getOnlinePlayers());
+                for(Player player : players){
+                    this.sendUpdatePacket(player, finalType, updateMap);
+                }
             }
+        });
+        for(ChunkLocation chunkLocation : updateMap.keySet()){
+            completableFutures.add(this.getChunkCacheAsync(chunkLocation));
         }
-        
     }
     
     
@@ -194,30 +233,33 @@ public class ParallelWorld {
      * @param type 送信するパケットの種類
      * @param updateMap アップデートしたいチャンクとブロックのSetのマップ
      */
-    public void sendUpdatePacket(Player player, UpdatePacketType type, Map<Chunk, Set<Block>> updateMap){
+    public void sendUpdatePacket(Player player, UpdatePacketType type, Map<ChunkLocation, Set<Block>> updateMap){
         switch (type){
             case NO_UPDATE:{
                 break;
             }
         
             case CHUNK_MAP:{
-                for(Chunk chunk : updateMap.keySet()) {
-                    if (chunk.isLoaded()){
+                for(ChunkLocation chunk : updateMap.keySet()) {
+                    AsyncChunkCache asyncChunkCache = AsyncChunkCache.getWorldAsyncChunkCash(chunk.world.getName());
+                    if(asyncChunkCache == null) continue;
+                    
+                    Object nmsChunk = asyncChunkCache.getCashedChunk(chunk.x, chunk.z);
+                    if(nmsChunk == null) continue;
+    
+                    TaskHandler.runWorldSync(chunk.world, () -> {
                         try {
-                            Object nmsChunk = NMSUtil.getNMSChunk(chunk);
                             NMSUtil.sendChunkUpdatePacket(player, nmsChunk);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
+                        }catch(Exception e){e.printStackTrace();}
+                    });
                 }
                 break;
             }
         
             case MULTI_BLOCK_CHANGE:{
                 if(!MultiBlockChangePacketManager.VERSION_1_16_R3){
-                    for(Map.Entry<Chunk, Set<Block>> entry : updateMap.entrySet()) {
-                        Chunk chunk = entry.getKey();
+                    for(Map.Entry<ChunkLocation, Set<Block>> entry : updateMap.entrySet()) {
+                        ChunkLocation chunk = entry.getKey();
                         Set<Block> blocks = entry.getValue();
                     
                         short[] locations = new short[65535];
@@ -227,17 +269,25 @@ public class ParallelWorld {
                             locations[index] = loc;
                             index++;
                         }
-                    
-                        if (chunk.isLoaded()){
+    
+                        AsyncChunkCache asyncChunkCache = AsyncChunkCache.getWorldAsyncChunkCash(chunk.world.getName());
+                        if(asyncChunkCache == null) continue;
+    
+                        Object nmsChunk = asyncChunkCache.getCashedChunk(chunk.x, chunk.z);
+                        if(nmsChunk == null) continue;
+                        int finalIndex = index;
+                        TaskHandler.runWorldSync(chunk.world, () -> {
                             try {
-                                NMSUtil.sendLegacyMultiBlockChangePacket(player, index, locations, chunk);
+                                NMSUtil.sendLegacyMultiBlockChangePacket(player, finalIndex, locations, nmsChunk);
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
-                        }
+                        });
                     }
                 }else{
-                    for(Set<Block> blocks : updateMap.values()) {
+                    for(Map.Entry<ChunkLocation, Set<Block>> entry : updateMap.entrySet()) {
+                        ChunkLocation chunkLocation = entry.getKey();
+                        Set<Block> blocks = entry.getValue();
                     
                         Map<BlockPosition3i, Set<Block>> sectionMap = new HashMap<>();
                         for(Block block : blocks){
@@ -263,9 +313,11 @@ public class ParallelWorld {
                                 index++;
                             }
                         
-                            try {
-                                NMSUtil.sendMultiBlockChangePacket(player, locations.size(), locationsArray, sectionPosition);
-                            }catch (Exception e){e.printStackTrace();}
+                            TaskHandler.runWorldSync(chunkLocation.world, () -> {
+                                try {
+                                    NMSUtil.sendMultiBlockChangePacket(player, locations.size(), locationsArray, sectionPosition);
+                                }catch (Exception e){e.printStackTrace();}
+                            });
                         }
                     }
                 }
@@ -291,11 +343,13 @@ public class ParallelWorld {
      */
     @Deprecated
     public void setBlocks(Map<Block, BlockData> blockDataMap, boolean chunkUpdate){
-        Set<Chunk> chunkSet = new HashSet<>();
+        Set<ChunkLocation> chunkSet = new HashSet<>();
         
         for(Map.Entry<Block, BlockData> entry : blockDataMap.entrySet()){
             Block block = entry.getKey();
             BlockData data = entry.getValue();
+    
+            ChiyogamiManager.addEditedBlock(block.getWorld(), block.getX(), block.getY(), block.getZ(), wrappedParallelWorld);
             
             BlockLocation location = BlockLocation.createBlockLocation(block);
             ChunkPosition chunkPosition = new ChunkPosition(location.getX(), location.getZ());
@@ -309,7 +363,7 @@ public class ParallelWorld {
             PBlockData pBlockData = blockMap.computeIfAbsent(BlockLocation.createBlockLocation(block), k -> new PBlockData());
             pBlockData.setBlockData(data);
             
-            chunkSet.add(block.getChunk());
+            chunkSet.add(new ChunkLocation(block.getWorld(), block.getX(), block.getZ()));
         }
     
         
@@ -317,15 +371,14 @@ public class ParallelWorld {
         Player player = Bukkit.getPlayer(uuid);
         if(player == null) return;
         
-        for(Chunk chunk : chunkSet) {
-            if (chunk.isLoaded()){
+        for(ChunkLocation chunk : chunkSet) {
+            this.getChunkCacheAsync(chunk).thenAccept(nmsChunk -> {
                 try {
-                    Object nmsChunk = NMSUtil.getNMSChunk(chunk);
                     NMSUtil.sendChunkUpdatePacket(player, nmsChunk);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            }
+            });
         }
     }
     
@@ -335,8 +388,6 @@ public class ParallelWorld {
      * @param lightLevelMap 置き換えるブロックとブロックデータのマップ
      */
     public void setLightLevels(Map<Block, Integer> lightLevelMap){
-        Set<Chunk> chunkSet = new HashSet<>();
-        
         for(Map.Entry<Block, Integer> entry : lightLevelMap.entrySet()){
             Block block = entry.getKey();
             int level = Math.min(entry.getValue(), 15);
@@ -353,8 +404,6 @@ public class ParallelWorld {
             }
             PBlockData pBlockData = blockMap.computeIfAbsent(BlockLocation.createBlockLocation(block), k -> new PBlockData());
             pBlockData.setBlockLightLevel(level);
-            
-            chunkSet.add(block.getChunk());
         }
     }
     
@@ -365,6 +414,8 @@ public class ParallelWorld {
      * @param block データを削除するブロック
      */
     public void removeBlock(Block block){
+        ChiyogamiManager.removeEditedBlock(block.getWorld(), block.getX(), block.getY(), block.getZ(), wrappedParallelWorld);
+        
         BlockLocation location = BlockLocation.createBlockLocation(block);
         ChunkPosition chunkPosition = new ChunkPosition(location.getX(), location.getZ());
         this.addEditedChunk(chunkPosition, block.getWorld());
@@ -381,10 +432,15 @@ public class ParallelWorld {
      * @param update ブロックの変更をプレイヤーに通知するかどうか
      */
     public void removeBlock(Block block, boolean update){
+        ChiyogamiManager.removeEditedBlock(block.getWorld(), block.getX(), block.getY(), block.getZ(), wrappedParallelWorld);
+        
         removeBlock(block);
         if(!update) return;
-        Player player = Bukkit.getPlayer(uuid);
-        if(player != null) player.sendBlockChange(block.getLocation(), block.getBlockData());
+        
+        TaskHandler.runWorldSync(block.getWorld(), () -> {
+            Player player = Bukkit.getPlayer(uuid);
+            if(player != null) player.sendBlockChange(block.getLocation(), block.getBlockData());
+        });
     }
     
     /**
@@ -396,9 +452,10 @@ public class ParallelWorld {
     public void removeBlocks(Set<Block> blocks, @Nullable UpdatePacketType type){
         if(type == null) type = UpdatePacketType.NO_UPDATE;
     
-        Map<Chunk, Set<Block>> updateMap = new HashMap<>();
+        Map<ChunkLocation, Set<Block>> updateMap = new HashMap<>();
     
         for(Block block : blocks){
+            ChiyogamiManager.removeEditedBlock(block.getWorld(), block.getX(), block.getY(), block.getZ(), wrappedParallelWorld);
             Location location = block.getLocation();
             ChunkPosition chunkPosition = new ChunkPosition(location.getBlockX(), location.getBlockZ());
             this.addEditedChunk(chunkPosition, block.getWorld());
@@ -408,20 +465,25 @@ public class ParallelWorld {
                 blockMap.remove(BlockLocation.createBlockLocation(block));
             }
         
-            Set<Block> updateBlocks = updateMap.computeIfAbsent(block.getChunk(), k -> new HashSet<>());
+            Set<Block> updateBlocks = updateMap.computeIfAbsent(new ChunkLocation(block.getWorld(), block.getX(), block.getZ()), k -> new HashSet<>());
             updateBlocks.add(block);
         }
-    
-    
-        if(Config.getWorkType() == Config.WorkType.NORMAL) {
-            Player player = Bukkit.getPlayer(uuid);
-            if (player == null) return;
-            this.sendUpdatePacket(player, type, updateMap);
-        }else{
-            Set<Player> players = new HashSet<>(Bukkit.getOnlinePlayers());
-            for(Player player : players){
-                this.sendUpdatePacket(player, type, updateMap);
+        
+        UpdatePacketType finalType = type;
+        CompletableFutureSet completableFutures = new CompletableFutureSet(updateMap.size(), () -> {
+            if(Config.getWorkType() == Config.WorkType.NORMAL) {
+                Player player = Bukkit.getPlayer(uuid);
+                if (player == null) return;
+                this.sendUpdatePacket(player, finalType, updateMap);
+            }else{
+                Set<Player> players = new HashSet<>(Bukkit.getOnlinePlayers());
+                for(Player player : players){
+                    this.sendUpdatePacket(player, finalType, updateMap);
+                }
             }
+        });
+        for(ChunkLocation chunkLocation : updateMap.keySet()){
+            completableFutures.add(this.getChunkCacheAsync(chunkLocation));
         }
     }
     
@@ -431,9 +493,10 @@ public class ParallelWorld {
      * @param update ブロックの変更をクライアントに通知するかどうか
      */
     public void removeBlocks(Set<Block> blocks, boolean update){
-        Map<Chunk, Set<Block>> updateMap = new HashMap<>();
+        Map<ChunkLocation, Set<Block>> updateMap = new HashMap<>();
         
         for(Block block : blocks){
+            ChiyogamiManager.removeEditedBlock(block.getWorld(), block.getX(), block.getY(), block.getZ(), wrappedParallelWorld);
             Location location = block.getLocation();
             ChunkPosition chunkPosition = new ChunkPosition(location.getBlockX(), location.getBlockZ());
             this.addEditedChunk(chunkPosition, block.getWorld());
@@ -443,21 +506,26 @@ public class ParallelWorld {
                 blockMap.remove(BlockLocation.createBlockLocation(block));
             }
             
-            Set<Block> updateBlocks = updateMap.computeIfAbsent(block.getChunk(), k -> new HashSet<>());
+            Set<Block> updateBlocks = updateMap.computeIfAbsent(new ChunkLocation(block.getWorld(), block.getX(), block.getZ()), k -> new HashSet<>());
             updateBlocks.add(block);
         }
         
         
         if(update) {
-            if (Config.getWorkType() == Config.WorkType.NORMAL) {
-                Player player = Bukkit.getPlayer(uuid);
-                if (player == null) return;
-                this.sendUpdatePacket(player, UpdatePacketType.CHUNK_MAP, updateMap);
-            } else {
-                Set<Player> players = new HashSet<>(Bukkit.getOnlinePlayers());
-                for (Player player : players) {
+            CompletableFutureSet completableFutures = new CompletableFutureSet(updateMap.size(), () -> {
+                if (Config.getWorkType() == Config.WorkType.NORMAL) {
+                    Player player = Bukkit.getPlayer(uuid);
+                    if (player == null) return;
                     this.sendUpdatePacket(player, UpdatePacketType.CHUNK_MAP, updateMap);
+                } else {
+                    Set<Player> players = new HashSet<>(Bukkit.getOnlinePlayers());
+                    for (Player player : players) {
+                        this.sendUpdatePacket(player, UpdatePacketType.CHUNK_MAP, updateMap);
+                    }
                 }
+            });
+            for(ChunkLocation chunkLocation : updateMap.keySet()){
+                completableFutures.add(this.getChunkCacheAsync(chunkLocation));
             }
         }
     }

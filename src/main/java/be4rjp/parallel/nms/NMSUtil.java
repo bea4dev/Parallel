@@ -246,11 +246,10 @@ public class NMSUtil {
     }
     
     
-    public static void sendLegacyMultiBlockChangePacket(Player player, int length, short[] locations, Chunk chunk)
+    public static void sendLegacyMultiBlockChangePacket(Player player, int length, short[] locations, Object nmsChunk)
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
-    
-        Object nmsChunk = getNMSChunk(chunk);
+        
         Class<?> Chunk = NMSUtil.getNMSClass("Chunk");
         Class<?> PacketPlayOutMultiBlockChange = NMSUtil.getNMSClass("PacketPlayOutMultiBlockChange");
         Constructor<?> constructor = PacketPlayOutMultiBlockChange.getConstructor(int.class, short[].class, Chunk);

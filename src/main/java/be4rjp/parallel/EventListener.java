@@ -1,8 +1,9 @@
 package be4rjp.parallel;
 
-import be4rjp.parallel.chunk.AsyncChunkCash;
+import be4rjp.parallel.chunk.AsyncChunkCache;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
+import be4rjp.parallel.util.TaskHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import org.bukkit.Chunk;
@@ -13,6 +14,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.scheduler.BukkitRunnable;
 
 public class EventListener implements Listener {
     
@@ -49,12 +51,22 @@ public class EventListener implements Listener {
         }
     }
 
-    @EventHandler
+    //@EventHandler
     public void onChunkLoad(ChunkLoadEvent event){
         World world = event.getWorld();
         Chunk chunk = event.getChunk();
-
-        AsyncChunkCash asyncChunkCash = AsyncChunkCash.computeIfAbsentWorldAsyncChunkCash(world.getName());
-        asyncChunkCash.addLoadedChunk(chunk);
+    
+        new BukkitRunnable(){
+            @Override
+            public void run() {
+                TaskHandler.runWorldSync(world, () -> {
+                    AsyncChunkCache asyncChunkCache = AsyncChunkCache.computeIfAbsentWorldAsyncChunkCash(world.getName());
+                    chunk.load();
+                    asyncChunkCache.addLoadedChunk(chunk);
+                });
+            }
+        }.runTaskLater(Parallel.getPlugin(), 20);
+        
+        
     }
 }

@@ -2,6 +2,7 @@ package be4rjp.parallel.nms.manager;
 
 import be4rjp.parallel.Config;
 import be4rjp.parallel.ParallelWorld;
+import be4rjp.parallel.chunk.AsyncChunkCache;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
 import be4rjp.parallel.util.*;
@@ -105,9 +106,17 @@ public class LightUpdatePacketManager extends BukkitRunnable {
     
             World world = player.getWorld();
             Object nmsWorld = NMSUtil.getNMSWorld(world);
-            Object nmsChunk = NMSUtil.getNMSChunk(world.getChunkAt(chunkX, chunkZ));
+            AsyncChunkCache asyncChunkCache = AsyncChunkCache.getWorldAsyncChunkCash(player.getWorld().getName());
+            if(asyncChunkCache == null){
+                packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
+                ChunkPacketManager.sendChunkWarnMessage();
+                return;
+            }
+    
+            Object nmsChunk = asyncChunkCache.getCashedChunk(chunkX, chunkZ);
             if(nmsChunk == null){
                 packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
+                ChunkPacketManager.sendChunkWarnMessage();
                 return;
             }
     

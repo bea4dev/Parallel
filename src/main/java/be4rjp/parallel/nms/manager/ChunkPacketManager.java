@@ -3,7 +3,7 @@ package be4rjp.parallel.nms.manager;
 import be4rjp.parallel.Config;
 import be4rjp.parallel.Parallel;
 import be4rjp.parallel.ParallelWorld;
-import be4rjp.parallel.chunk.AsyncChunkCash;
+import be4rjp.parallel.chunk.AsyncChunkCache;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
 import be4rjp.parallel.util.BlockLocation;
@@ -13,6 +13,7 @@ import be4rjp.parallel.util.PBlockData;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import org.bukkit.Chunk;
+import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -21,6 +22,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.nio.channels.ClosedChannelException;
 import java.util.Map;
+import java.util.Set;
 
 public class ChunkPacketManager extends BukkitRunnable {
     
@@ -85,17 +87,31 @@ public class ChunkPacketManager extends BukkitRunnable {
                 packetHandler.doWrite(channelHandlerContext, editedPacket, channelPromise);
                 return;
             }
-        
-            Object nmsWorld = NMSUtil.getNMSWorld(player.getWorld());
+    
+            World world = player.getWorld();
+            Object nmsWorld = NMSUtil.getNMSWorld(world);
+            
+            boolean isSameWorld = false;
+            for(BlockLocation blockLocation : dataMap.keySet()){
+                if(blockLocation.getWorld() == world){
+                    isSameWorld = true;
+                    break;
+                }
+            }
+            if(!isSameWorld){
+                packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
+                return;
+            }
+            
 
-            AsyncChunkCash asyncChunkCash = AsyncChunkCash.getWorldAsyncChunkCash(player.getWorld().getName());
-            if(asyncChunkCash == null){
+            AsyncChunkCache asyncChunkCache = AsyncChunkCache.getWorldAsyncChunkCash(world.getName());
+            if(asyncChunkCache == null){
                 packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
                 sendChunkWarnMessage();
                 return;
             }
 
-            Object nmsChunk = asyncChunkCash.getCashedChunk(chunkX, chunkZ);
+            Object nmsChunk = asyncChunkCache.getCashedChunk(chunkX, chunkZ);
             if(nmsChunk == null){
                 packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
                 sendChunkWarnMessage();
@@ -137,7 +153,7 @@ public class ChunkPacketManager extends BukkitRunnable {
                 Chunk chunk = location.getChunk();
 
                 if(blockData == null) continue;
-                if(player.getWorld() != location.getWorld()) continue;
+                if(world != location.getWorld()) continue;
             
                 if (chunk.getX() == chunkX && chunk.getZ() == chunkZ) {
                     Object iBlockData = NMSUtil.getIBlockData(blockData);
