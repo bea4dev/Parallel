@@ -78,14 +78,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>world.chiyogami</groupId>
-            <artifactId>chiyogami-api</artifactId>
-            <version>1.15.2-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>world.chiyogami</groupId>
-            <artifactId>chiyogami</artifactId>
+            <groupId>com.destroystokyo.paper</groupId>
+            <artifactId>paper-api</artifactId>
             <version>1.15.2-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
