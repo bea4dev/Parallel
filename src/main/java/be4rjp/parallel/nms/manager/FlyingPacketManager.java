@@ -1,5 +1,6 @@
 package be4rjp.parallel.nms.manager;
 
+import be4rjp.parallel.nms.NMSClass;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -16,7 +17,7 @@ public class FlyingPacketManager extends BukkitRunnable {
     
     static {
         try {
-            PacketPlayInFlying = NMSUtil.getNMSClass("PacketPlayInFlying");
+            PacketPlayInFlying = NMSClass.PACKET_PLAY_IN_FLYING.getNMSClass();
             f = PacketPlayInFlying.getDeclaredField("f");
             f.setAccessible(true);
         }catch (Exception e){

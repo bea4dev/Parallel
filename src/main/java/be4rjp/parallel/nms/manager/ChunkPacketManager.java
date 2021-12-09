@@ -4,6 +4,7 @@ import be4rjp.parallel.Config;
 import be4rjp.parallel.Parallel;
 import be4rjp.parallel.ParallelWorld;
 import be4rjp.parallel.chunk.AsyncChunkCache;
+import be4rjp.parallel.nms.NMSClass;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
 import be4rjp.parallel.util.BlockLocation;
@@ -22,7 +23,6 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.nio.channels.ClosedChannelException;
 import java.util.Map;
-import java.util.Set;
 
 public class ChunkPacketManager extends BukkitRunnable {
     
@@ -34,14 +34,18 @@ public class ChunkPacketManager extends BukkitRunnable {
     
     static {
         try {
-            PacketPlayOutMapChunk = NMSUtil.getNMSClass("PacketPlayOutMapChunk");
+            PacketPlayOutMapChunk = NMSClass.PACKET_PLAY_OUT_MAP_CHUNK.getNMSClass();
             a = PacketPlayOutMapChunk.getDeclaredField("a");
             b = PacketPlayOutMapChunk.getDeclaredField("b");
             a.setAccessible(true);
             b.setAccessible(true);
             
-            Class<?> Chunk = NMSUtil.getNMSClass("Chunk");
-            loc = Chunk.getDeclaredField("loc");
+            Class<?> Chunk = NMSClass.CHUNK.getNMSClass();
+            if(NMSClass.HIGHER_1_17_R1){
+                loc = Chunk.getDeclaredField("v");
+            }else{
+                loc = Chunk.getDeclaredField("loc");
+            }
             d = Chunk.getDeclaredField("d");
             loc.setAccessible(true);
             d.setAccessible(true);

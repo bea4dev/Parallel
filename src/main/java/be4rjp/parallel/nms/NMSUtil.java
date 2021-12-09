@@ -24,9 +24,10 @@ public class NMSUtil {
     }
     
     //微妙にCPU負荷が小さくなるおまじないキャッシュ
-    private static Map<String, Class<?>> nmsClassMap = new HashMap<>();
-    private static Map<String, Class<?>> craftBukkitClassMap = new HashMap<>();
+    private static final Map<String, Class<?>> nmsClassMap = new HashMap<>();
+    private static final Map<String, Class<?>> craftBukkitClassMap = new HashMap<>();
     
+    @Deprecated
     public static Class<?> getNMSClass(String nmsClassString) throws ClassNotFoundException {
         Class<?> nmsClass = nmsClassMap.get(nmsClassString);
         
@@ -58,7 +59,12 @@ public class NMSUtil {
         
         Method getHandle = player.getClass().getMethod("getHandle");
         Object nmsPlayer = getHandle.invoke(player);
-        Field conField = nmsPlayer.getClass().getField("playerConnection");
+        Field conField;
+        if(NMSClass.HIGHER_1_17_R1){
+            conField = nmsPlayer.getClass().getField("b");
+        }else {
+            conField = nmsPlayer.getClass().getField("playerConnection");
+        }
         Object con = conField.get(nmsPlayer);
         return con;
     }
@@ -85,16 +91,23 @@ public class NMSUtil {
     public static Channel getChannel(Player player) throws SecurityException, NoSuchMethodException,
             NoSuchFieldException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
         
-        Method getHandle = player.getClass().getMethod("getHandle");
-        Object nmsPlayer = getHandle.invoke(player);
+        Object con = getConnection(player);
         
-        Field conField = nmsPlayer.getClass().getField("playerConnection");
-        Object con = conField.get(nmsPlayer);
-        
-        Field netField = con.getClass().getField("networkManager");
+        Field netField;
+        if(NMSClass.HIGHER_1_17_R1){
+            netField = con.getClass().getField("a");
+        }else{
+            netField = con.getClass().getField("networkManager");
+        }
         Object net = netField.get(con);
         
-        Field chaField = net.getClass().getField("channel");
+        Field chaField;
+        if(NMSClass.HIGHER_1_17_R1){
+            chaField = net.getClass().getField("k");
+        }else{
+            chaField = net.getClass().getField("channel");
+        }
+        
         Object channel = chaField.get(net);
         
         return (Channel)channel;
@@ -123,7 +136,7 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Class<?> Entity = getNMSClass("Entity");
+        Class<?> Entity = NMSClass.ENTITY.getNMSClass();
         Method getBukkitEntity = Entity.getMethod("getBukkitEntity");
         Object bukkitEntity = getBukkitEntity.invoke(entity);
         
@@ -135,10 +148,10 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
     
-        Class<?> Chunk = NMSUtil.getNMSClass("Chunk");
-        Class<?> World = NMSUtil.getNMSClass("World");
-        Class<?> ChunkCoordIntPair = NMSUtil.getNMSClass("ChunkCoordIntPair");
-        Class<?> BiomeStorage = NMSUtil.getNMSClass("BiomeStorage");
+        Class<?> Chunk = NMSClass.CHUNK.getNMSClass();
+        Class<?> World = NMSClass.WORLD.getNMSClass();
+        Class<?> ChunkCoordIntPair = NMSClass.CHUNK_COORD_INT_PAIR.getNMSClass();
+        Class<?> BiomeStorage = NMSClass.BIOME_STORAGE.getNMSClass();
         return Chunk.getConstructor(World, ChunkCoordIntPair, BiomeStorage).newInstance(nmsWorld, chunkCoordIntPair, biomeStorage);
     }
     
@@ -147,7 +160,7 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Class<?> ChunkSection = NMSUtil.getNMSClass("ChunkSection");
+        Class<?> ChunkSection = NMSClass.CHUNK_SECTION.getNMSClass();
         return ChunkSection.getConstructor(int.class).newInstance(y);
     }
     
@@ -156,7 +169,7 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
     
-        Class<?> Chunk = NMSUtil.getNMSClass("Chunk");
+        Class<?> Chunk = NMSClass.CHUNK.getNMSClass();
         return Chunk.getMethod("getSections").invoke(nmsChunk);
     }
     
@@ -165,7 +178,7 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
     
-        Class<?> ChunkSection = NMSUtil.getNMSClass("ChunkSection");
+        Class<?> ChunkSection = NMSClass.CHUNK_SECTION.getNMSClass();
         return ChunkSection.getMethod("getType", int.class, int.class, int.class).invoke(chunkSections, x, y, z);
     }
     
@@ -174,8 +187,8 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Class<?> ChunkSection = NMSUtil.getNMSClass("ChunkSection");
-        Class<?> IBlockData = NMSUtil.getNMSClass("IBlockData");
+        Class<?> ChunkSection = NMSClass.CHUNK_SECTION.getNMSClass();
+        Class<?> IBlockData = NMSClass.IBLOCK_DATA.getNMSClass();
         ChunkSection.getMethod("setType", int.class, int.class, int.class, IBlockData).invoke(chunkSections, x, y, z, iBlockData);
     }
     
@@ -184,8 +197,8 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Class<?> PacketPlayOutMapChunk = NMSUtil.getNMSClass("PacketPlayOutMapChunk");
-        Class<?> Chunk = NMSUtil.getNMSClass("Chunk");
+        Class<?> PacketPlayOutMapChunk = NMSClass.PACKET_PLAY_OUT_MAP_CHUNK.getNMSClass();
+        Class<?> Chunk = NMSClass.CHUNK.getNMSClass();
         return PacketPlayOutMapChunk.getConstructor(Chunk, int.class).newInstance(nmsChunk, size);
     }
     
@@ -194,7 +207,7 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Class<?> BaseBlockPosition = NMSUtil.getNMSClass("BaseBlockPosition");
+        Class<?> BaseBlockPosition = NMSClass.BASE_BLOCK_POSITION.getNMSClass();
         Method getX = BaseBlockPosition.getMethod("getX");
         Method getY = BaseBlockPosition.getMethod("getY");
         Method getZ = BaseBlockPosition.getMethod("getZ");
@@ -209,7 +222,7 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
 
-        Class<?> SectionPosition = NMSUtil.getNMSClass("SectionPosition");
+        Class<?> SectionPosition = NMSClass.SECTION_POSITION.getNMSClass();
         Method a = SectionPosition.getMethod("a", int.class, int.class, int.class);
         return a.invoke(null, x, y, z);
     }
@@ -219,7 +232,7 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
 
-        Class<?> ChunkCoordIntPair = NMSUtil.getNMSClass("ChunkCoordIntPair");
+        Class<?> ChunkCoordIntPair = NMSClass.CHUNK_COORD_INT_PAIR.getNMSClass();
         int x = ChunkCoordIntPair.getField("x").getInt(chunkCoordIntPair);
         int z = ChunkCoordIntPair.getField("z").getInt(chunkCoordIntPair);
         return new ChunkPosition(x << 4, z << 4);
@@ -230,7 +243,7 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Class<?> PacketPlayOutBlockChange = NMSUtil.getNMSClass("PacketPlayOutBlockChange");
+        Class<?> PacketPlayOutBlockChange = NMSClass.PACKET_PLAY_OUT_BLOCK_CHANGE.getNMSClass();
         Field block = PacketPlayOutBlockChange.getField("block");
         block.set(packet, iBlockData);
     }
@@ -241,7 +254,7 @@ public class NMSUtil {
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
         Object packet = createPacketPlayOutMapChunk(chunk, 65535);
-        Method sendPacket = getNMSClass("PlayerConnection").getMethod("sendPacket", getNMSClass("Packet"));
+        Method sendPacket = NMSClass.PLAYER_CONNECTION.getNMSClass().getMethod("sendPacket", NMSClass.PACKET.getNMSClass());
         sendPacket.invoke(getConnection(player), packet);
     }
     
@@ -250,11 +263,11 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Class<?> Chunk = NMSUtil.getNMSClass("Chunk");
-        Class<?> PacketPlayOutMultiBlockChange = NMSUtil.getNMSClass("PacketPlayOutMultiBlockChange");
+        Class<?> Chunk = NMSClass.CHUNK.getNMSClass();
+        Class<?> PacketPlayOutMultiBlockChange = NMSClass.PACKET_PLAY_OUT_MULTI_BLOCK_CHANGE.getNMSClass();/*NMSUtil.getNMSClass("PacketPlayOutMultiBlockChange");*/
         Constructor<?> constructor = PacketPlayOutMultiBlockChange.getConstructor(int.class, short[].class, Chunk);
         Object packet = constructor.newInstance(length, locations, nmsChunk);
-        Method sendPacket = getNMSClass("PlayerConnection").getMethod("sendPacket", getNMSClass("Packet"));
+        Method sendPacket = NMSClass.PLAYER_CONNECTION.getNMSClass().getMethod("sendPacket", NMSClass.PACKET.getNMSClass());
         sendPacket.invoke(getConnection(player), packet);
     }
 
@@ -263,7 +276,7 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
     IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
 
-        Class<?> PacketPlayOutMultiBlockChange = NMSUtil.getNMSClass("PacketPlayOutMultiBlockChange");
+        Class<?> PacketPlayOutMultiBlockChange = NMSClass.PACKET_PLAY_OUT_MULTI_BLOCK_CHANGE.getNMSClass();/*NMSUtil.getNMSClass("PacketPlayOutMultiBlockChange");*/
         Object packet = PacketPlayOutMultiBlockChange.getConstructor().newInstance();
         Field a = PacketPlayOutMultiBlockChange.getDeclaredField("a");
         Field b = PacketPlayOutMultiBlockChange.getDeclaredField("b");
@@ -277,7 +290,7 @@ public class NMSUtil {
         a.set(packet, NMSUtil.createSectionPosition(sectionPosition.getX(), sectionPosition.getY(), sectionPosition.getZ()));
         b.set(packet, locations);
 
-        Class<?> IBlockData = NMSUtil.getNMSClass("IBlockData");
+        Class<?> IBlockData = NMSClass.IBLOCK_DATA.getNMSClass();
         Object blockDataArray = Array.newInstance(IBlockData, length);
         for(int index = 0; index < length; index++){
             Array.set(blockDataArray, index, BLOCK_DATA_AIR);
@@ -286,7 +299,7 @@ public class NMSUtil {
         
         d.set(packet, true);
 
-        Method sendPacket = getNMSClass("PlayerConnection").getMethod("sendPacket", getNMSClass("Packet"));
+        Method sendPacket = NMSClass.PLAYER_CONNECTION.getNMSClass().getMethod("sendPacket", NMSClass.PACKET.getNMSClass());
         sendPacket.invoke(getConnection(player), packet);
     }
  
@@ -295,11 +308,11 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Class<?> packetClass = getNMSClass("PacketPlayOutEntityTeleport");
-        Class<?> Entity = getNMSClass("Entity");
+        Class<?> packetClass = NMSClass.PACKET_PLAY_OUT_ENTITY_TELEPORT.getNMSClass();
+        Class<?> Entity = NMSClass.ENTITY.getNMSClass();
         Constructor<?> packetConstructor = packetClass.getConstructor(Entity);
         Object packet = packetConstructor.newInstance(entity);
-        Method sendPacket = getNMSClass("PlayerConnection").getMethod("sendPacket", getNMSClass("Packet"));
+        Method sendPacket = NMSClass.PLAYER_CONNECTION.getNMSClass().getMethod("sendPacket", NMSClass.PACKET.getNMSClass());
         sendPacket.invoke(getConnection(player), packet);
     }
     
@@ -308,8 +321,8 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Class<?> Block = getNMSClass("Block");
-        Class<?> IBlockData = getNMSClass("IBlockData");
+        Class<?> Block = NMSClass.BLOCK.getNMSClass();
+        Class<?> IBlockData = NMSClass.IBLOCK_DATA.getNMSClass();
         Method getCombinedId = Block.getMethod("getCombinedId", IBlockData);
         return (int)getCombinedId.invoke(null, iBlockData);
     }
@@ -319,7 +332,7 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Class<?> Block = getNMSClass("Block");
+        Class<?> Block = NMSClass.BLOCK.getNMSClass();
         Method getByCombinedId = Block.getMethod("getByCombinedId", int.class);
         return getByCombinedId.invoke(null, id);
     }
@@ -329,12 +342,9 @@ public class NMSUtil {
             throws ClassNotFoundException, SecurityException, NoSuchMethodException, NoSuchFieldException,
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
-        Method getHandle = player.getClass().getMethod("getHandle");
-        Object nmsPlayer = getHandle.invoke(player);
-        Field conField = nmsPlayer.getClass().getField("playerConnection");
-        Object con = conField.get(nmsPlayer);
+        Object con = getConnection(player);
         
-        Class<?> PlayerConnection = getNMSClass("PlayerConnection");
+        Class<?> PlayerConnection = NMSClass.PLAYER_CONNECTION.getNMSClass();
         Field C = PlayerConnection.getDeclaredField("C");
         Field E = PlayerConnection.getDeclaredField("E");
         C.setAccessible(true);
@@ -350,7 +360,7 @@ public class NMSUtil {
             IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException {
         
         Class<?> CraftBlockData = getCraftBukkitClass("block.data.CraftBlockData");
-        Class<?> IBlockData = getNMSClass("IBlockData");
+        Class<?> IBlockData = NMSClass.IBLOCK_DATA.getNMSClass();
         Method fromData = CraftBlockData.getMethod("fromData", IBlockData);
         return (BlockData)fromData.invoke(null, iBlockData);
     }

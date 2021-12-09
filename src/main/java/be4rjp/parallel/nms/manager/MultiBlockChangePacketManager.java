@@ -1,6 +1,7 @@
 package be4rjp.parallel.nms.manager;
 
 import be4rjp.parallel.ParallelWorld;
+import be4rjp.parallel.nms.NMSClass;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
 import be4rjp.parallel.util.BlockLocation;
@@ -27,24 +28,25 @@ public class MultiBlockChangePacketManager extends BukkitRunnable {
     private static Field b;
     private static Field c;
     
-    public static boolean VERSION_1_16_R3 = false;
+    public static boolean HIGHER_1_16_R3 = false;
     
     static {
         try {
-            PacketPlayOutMultiBlockChange = NMSUtil.getNMSClass("PacketPlayOutMultiBlockChange");
-            IBlockData = NMSUtil.getNMSClass("IBlockData");
+            PacketPlayOutMultiBlockChange = NMSClass.PACKET_PLAY_OUT_MULTI_BLOCK_CHANGE.getNMSClass();
+            IBlockData = NMSClass.IBLOCK_DATA.getNMSClass();
             a = PacketPlayOutMultiBlockChange.getDeclaredField("a");
             b = PacketPlayOutMultiBlockChange.getDeclaredField("b");
             a.setAccessible(true);
             b.setAccessible(true);
             
-            try{
-                MultiBlockChangeInfo = NMSUtil.getNMSClass("PacketPlayOutMultiBlockChange$MultiBlockChangeInfo");
-            }catch (ClassNotFoundException e){
-                VERSION_1_16_R3 = true;
+            
+            MultiBlockChangeInfo = NMSClass.MULTI_BLOCK_CHANGE_INFO.getNMSClass();
+            if(MultiBlockChangeInfo == null) {
+                HIGHER_1_16_R3 = true;
                 c = PacketPlayOutMultiBlockChange.getDeclaredField("c");
                 c.setAccessible(true);
             }
+            
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -73,7 +75,7 @@ public class MultiBlockChangePacketManager extends BukkitRunnable {
             
             ParallelWorld parallelWorld = ParallelWorld.getParallelWorld(player);
             
-            if(VERSION_1_16_R3){
+            if(HIGHER_1_16_R3){
                 short[] locArray = (short[]) b.get(packet);
                 Object blockDataArray = c.get(packet);
 

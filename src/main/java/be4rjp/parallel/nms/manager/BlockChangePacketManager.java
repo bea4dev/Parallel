@@ -1,6 +1,7 @@
 package be4rjp.parallel.nms.manager;
 
 import be4rjp.parallel.ParallelWorld;
+import be4rjp.parallel.nms.NMSClass;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
 import be4rjp.parallel.util.BlockLocation;
@@ -24,7 +25,7 @@ public class BlockChangePacketManager extends BukkitRunnable {
     
     static {
         try {
-            PacketPlayOutBlockChange = NMSUtil.getNMSClass("PacketPlayOutBlockChange");
+            PacketPlayOutBlockChange = NMSClass.PACKET_PLAY_OUT_BLOCK_CHANGE.getNMSClass();
             a = PacketPlayOutBlockChange.getDeclaredField("a");
             a.setAccessible(true);
         }catch (Exception e){

@@ -257,12 +257,12 @@ public class ParallelWorld {
             }
         
             case MULTI_BLOCK_CHANGE:{
-                if(!MultiBlockChangePacketManager.VERSION_1_16_R3){
+                if(!MultiBlockChangePacketManager.HIGHER_1_16_R3){
                     for(Map.Entry<ChunkLocation, Set<Block>> entry : updateMap.entrySet()) {
                         ChunkLocation chunk = entry.getKey();
                         Set<Block> blocks = entry.getValue();
                     
-                        short[] locations = new short[65535];
+                        short[] locations = new short[blocks.size()];
                         int index = 0;
                         for(Block block : blocks){
                             short loc = (short) ((block.getX() & 0xF) << 12 | (block.getZ() & 0xF) << 8 | block.getY());

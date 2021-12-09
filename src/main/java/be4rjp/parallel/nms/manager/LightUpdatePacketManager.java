@@ -3,6 +3,7 @@ package be4rjp.parallel.nms.manager;
 import be4rjp.parallel.Config;
 import be4rjp.parallel.ParallelWorld;
 import be4rjp.parallel.chunk.AsyncChunkCache;
+import be4rjp.parallel.nms.NMSClass;
 import be4rjp.parallel.nms.NMSUtil;
 import be4rjp.parallel.nms.PacketHandler;
 import be4rjp.parallel.util.*;
@@ -44,8 +45,8 @@ public class LightUpdatePacketManager extends BukkitRunnable {
     
     static {
         try {
-            PacketPlayOutLightUpdate = NMSUtil.getNMSClass("PacketPlayOutLightUpdate");
-            NibbleArray = NMSUtil.getNMSClass("NibbleArray");
+            PacketPlayOutLightUpdate = NMSClass.PACKET_PLAY_OUT_LIGHT_UPDATE.getNMSClass();
+            NibbleArray = NMSClass.NIBBLE_ARRAY.getNMSClass();
     
             a = PacketPlayOutLightUpdate.getDeclaredField("a");
             b = PacketPlayOutLightUpdate.getDeclaredField("b");
@@ -75,8 +76,6 @@ public class LightUpdatePacketManager extends BukkitRunnable {
             }catch (NoSuchFieldException e){
                 VERSION_1_16_R1 = false;
             }
-        }catch (ClassNotFoundException e){
-            //None
         }catch (Exception e){e.printStackTrace();}
     }
     
@@ -106,6 +105,7 @@ public class LightUpdatePacketManager extends BukkitRunnable {
     
             World world = player.getWorld();
             Object nmsWorld = NMSUtil.getNMSWorld(world);
+            /*
             AsyncChunkCache asyncChunkCache = AsyncChunkCache.getWorldAsyncChunkCash(player.getWorld().getName());
             if(asyncChunkCache == null){
                 packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
@@ -118,7 +118,7 @@ public class LightUpdatePacketManager extends BukkitRunnable {
                 packetHandler.doWrite(channelHandlerContext, packet, channelPromise);
                 ChunkPacketManager.sendChunkWarnMessage();
                 return;
-            }
+            }*/
     
             ChunkPosition chunkPosition = new ChunkPosition(chunkX << 4, chunkZ << 4);
             Map<BlockLocation, PBlockData> dataMap = parallelWorld.getChunkBlockMap().get(chunkPosition);
