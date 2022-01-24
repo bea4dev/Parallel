@@ -1,25 +1,53 @@
 package be4rjp.parallel.chiyogami;
 
 import org.bukkit.World;
-import world.chiyogami.bridge.ParallelWorldBridge;
-import world.chiyogami.bridge.WrappedParallelWorld;
+import world.chiyogami.chiyogamilib.ChiyogamiLib;
+import world.chiyogami.chiyogamilib.ServerType;
 
+import java.lang.reflect.Method;
 import java.util.UUID;
 
 public class ChiyogamiBridge {
     
+    private static Method addEditedBlock;
+    private static Method removeEditedBlock;
+    
+    static {
+        if(ChiyogamiLib.getServerType() == ServerType.CHIYOGAMI){
+            try{
+                Class<?> wrappedParallelWorld = Class.forName("world.chiyogami.bridge.WrappedParallelWorld");
+                addEditedBlock = wrappedParallelWorld.getMethod("addEditedBlock", World.class, int.class, int.class, int.class);
+                removeEditedBlock = wrappedParallelWorld.getMethod("removeEditedBlock", World.class, int.class, int.class, int.class);
+            }catch (Exception e){e.printStackTrace();}
+        }
+    }
+    
     public static void addEditedBlock(World world, int x, int y, int z, Object wrappedParallelWorldObject){
-        WrappedParallelWorld wrappedParallelWorld = (WrappedParallelWorld) wrappedParallelWorldObject;
-        wrappedParallelWorld.addEditedBlock(world, x, y, z);
+        try {
+            addEditedBlock.invoke(wrappedParallelWorldObject, world, x, y, z);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     
     public static void removeEditedBlock(World world, int x, int y, int z, Object wrappedParallelWorldObject){
-        WrappedParallelWorld wrappedParallelWorld = (WrappedParallelWorld) wrappedParallelWorldObject;
-        wrappedParallelWorld.removeEditedBlock(world, x, y, z);
+        try {
+            removeEditedBlock.invoke(wrappedParallelWorldObject, world, x, y, z);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     
     public static Object getWrappedParallelWorld(UUID uuid){
-        return ParallelWorldBridge.getWrappedParallelWorld(uuid);
+        try {
+            Class<?> ParallelWorldBridge = Class.forName("world.chiyogami.bridge.ParallelWorldBridge");
+            Method method = ParallelWorldBridge.getMethod("getWrappedParallelWorld", UUID.class);
+            return method.invoke(null, uuid);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return null;
     }
     
 }

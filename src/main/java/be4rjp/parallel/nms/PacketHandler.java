@@ -1,6 +1,7 @@
 package be4rjp.parallel.nms;
 import be4rjp.parallel.Config;
 import be4rjp.parallel.Parallel;
+import be4rjp.parallel.ParallelWorld;
 import be4rjp.parallel.nms.manager.*;
 import io.netty.channel.*;
 import org.bukkit.entity.Player;
@@ -11,8 +12,11 @@ public class PacketHandler extends ChannelDuplexHandler{
     
     private final Player player;
     
+    private final ParallelWorld parallelWorld;
+    
     public PacketHandler(Player player){
         this.player = player;
+        this.parallelWorld = ParallelWorld.getParallelWorld(player);
     }
     
     @Override
@@ -31,26 +35,22 @@ public class PacketHandler extends ChannelDuplexHandler{
     public void write(ChannelHandlerContext channelHandlerContext, Object packet, ChannelPromise channelPromise) throws Exception {
         
         if(packet.getClass().getSimpleName().equalsIgnoreCase("PacketPlayOutMapChunk")){
-            ChunkPacketManager manager = new ChunkPacketManager(channelHandlerContext, packet, channelPromise, this, player);
-            manager.runTaskAsynchronously(Parallel.getPlugin());
+            
             return;
         }
     
         if(packet.getClass().getSimpleName().equalsIgnoreCase("PacketPlayOutLightUpdate") && Config.isRewriteLightPacket()){
-            LightUpdatePacketManager manager = new LightUpdatePacketManager(channelHandlerContext, packet, channelPromise, this, player);
-            manager.runTaskAsynchronously(Parallel.getPlugin());
+            
             return;
         }
         
         if(packet.getClass().getSimpleName().equalsIgnoreCase("PacketPlayOutBlockChange")){
-            BlockChangePacketManager manager = new BlockChangePacketManager(channelHandlerContext, packet, channelPromise, this, player);
-            manager.runTaskAsynchronously(Parallel.getPlugin());
+            
             return;
         }
         
         if(packet.getClass().getSimpleName().equalsIgnoreCase("PacketPlayOutMultiBlockChange")){
-            MultiBlockChangePacketManager manager = new MultiBlockChangePacketManager(channelHandlerContext, packet, channelPromise, this, player);
-            manager.runTaskAsynchronously(Parallel.getPlugin());
+            
             return;
         }
         
