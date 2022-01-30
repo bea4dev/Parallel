@@ -1,0 +1,198 @@
+package be4rjp.parallel.structure;
+
+import be4rjp.parallel.Parallel;
+import be4rjp.parallel.nms.NMSManager;
+import be4rjp.parallel.util.BlockPosition3i;
+import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class StructureData {
+    
+    private static Map<String, StructureData> structureDataMap;
+    
+    static {
+        initialize();
+    }
+    
+    public static void initialize(){
+        structureDataMap = new HashMap<>();
+    }
+    
+    public static StructureData getStructureData(String name){
+        return structureDataMap.get(name);
+    }
+    
+    public static Map<String, StructureData> getStructureDataMap() {return structureDataMap;}
+    
+    /**
+     * 全ての構造物データを読み込む
+     */
+    public static void loadAllStructureData() {
+        initialize();
+    
+        Parallel.getPlugin().getLogger().info("Loading structure data...");
+        File dir = new File("plugins/Parallel/structure_data");
+    
+        dir.getParentFile().mkdir();
+        dir.mkdir();
+        File[] files = dir.listFiles();
+        if (files.length == 0) {
+            //Parallel.getPlugin().saveResource("structure_data/sample-data.yml", false);
+            files = dir.listFiles();
+        }
+    
+        if (files != null) {
+            for (File file : files) {
+                Parallel.getPlugin().getLogger().info(file.getName());
+                String name = file.getName().replace(".yml", "");
+                
+                StructureData data = new StructureData(name);
+                data.loadData();
+            }
+        }
+    }
+    
+    
+    
+    
+    private final String name;
+    private final Map<BlockPosition3i, BlockData> blockDataMap = new HashMap<>();
+    private final Map<BlockPosition3i, Integer> blockLightLevelMap = new HashMap<>();
+    
+    public StructureData(String name){
+        this.name = name;
+        structureDataMap.put(name, this);
+    }
+    
+    public Map<BlockPosition3i, BlockData> getBlockDataMap() {return blockDataMap;}
+    
+    public Map<BlockPosition3i, Integer> getBlockLightLevelMap() {return blockLightLevelMap;}
+    
+    /**
+     * ブロックの状態を記録
+     * @param baseLocation
+     * @param blocks
+     */
+    public void setBlockData(Location baseLocation, List<Block> blocks){
+        for(Block block : blocks) {
+            BlockPosition3i relative = new BlockPosition3i(block.getX() - baseLocation.getBlockX(), block.getY() - baseLocation.getBlockY(), block.getZ() - baseLocation.getBlockZ());
+            BlockData blockData = block.getBlockData();
+            int blockLightLevel = block.getLightFromBlocks();
+            
+            this.blockDataMap.put(relative, blockData);
+            this.blockLightLevelMap.put(relative, blockLightLevel);
+        }
+    }
+    
+    /**
+     * ymlファイルから読み込み
+     */
+    public void loadData(){
+        this.blockDataMap.clear();
+    
+        File file = new File("plugins/Parallel/structure_data", name + ".yml");
+        createFile(file);
+    
+        FileConfiguration yml = YamlConfiguration.loadConfiguration(file);
+        List<String> lines = yml.getStringList("blocks");
+        //x, y, z, CombinedId
+        for(String line : lines){
+            line = line.replace(" ", "");
+            String[] args = line.split(",");
+            
+            int x = Integer.parseInt(args[0]);
+            int y = Integer.parseInt(args[1]);
+            int z = Integer.parseInt(args[2]);
+    
+            BlockPosition3i relative = new BlockPosition3i(x, y, z);
+            int id = Integer.parseInt(args[3]);
+            Object iBlockData = NMSManager.getNmsHandler().getIBlockDataByCombinedId(id);
+            this.blockDataMap.put(relative, NMSManager.getNmsHandler().getBukkitBlockData(iBlockData));
+        }
+    
+        if(yml.contains("block-lights")) {
+            lines = yml.getStringList("block-lights");
+            //x, y, z, lightLevel
+            for (String line : lines) {
+                line = line.replace(" ", "");
+                String[] args = line.split(",");
+        
+                int x = Integer.parseInt(args[0]);
+                int y = Integer.parseInt(args[1]);
+                int z = Integer.parseInt(args[2]);
+    
+                BlockPosition3i relative = new BlockPosition3i(x, y, z);
+                int lightLevel = Integer.parseInt(args[3]);
+                this.blockLightLevelMap.put(relative, lightLevel);
+            }
+        }
+    }
+    
+    
+    /**
+     * ymlファイルへ書き込み
+     */
+    public void saveData(){
+        File file = new File("plugins/Parallel/structure_data", name + ".yml");
+        FileConfiguration yml = new YamlConfiguration();
+        
+        List<String> lines = new ArrayList<>();
+        for(Map.Entry<BlockPosition3i, BlockData> entry : this.blockDataMap.entrySet()){
+            BlockPosition3i relative = entry.getKey();
+    
+            try {
+                Object iBlockData = NMSManager.getNmsHandler().getIBlockData(entry.getValue());
+                int id = NMSManager.getNmsHandler().getCombinedIdByIBlockData(iBlockData);
+                
+                String line = relative.getX() + ", " + relative.getY() + ", " + relative.getZ() + ", " + id;
+                lines.add(line);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        yml.set("blocks", lines);
+    
+        List<String> lines2 = new ArrayList<>();
+        for(Map.Entry<BlockPosition3i, Integer> entry : this.blockLightLevelMap.entrySet()){
+            BlockPosition3i relative = entry.getKey();
+            int lightLevel = entry.getValue();
+            
+            String line = relative.getX() + ", " + relative.getY() + ", " + relative.getZ() + ", " + lightLevel;
+            lines2.add(line);
+        }
+        yml.set("block-lights", lines2);
+        
+    
+        try {
+            yml.save(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    
+    /**
+     * ファイルが存在しなければ作成する
+     * @param file
+     */
+    public void createFile(File file){
+        file.getParentFile().mkdir();
+        if(!file.exists()){
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}

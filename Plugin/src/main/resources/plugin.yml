@@ -1,0 +1,16 @@
+name: Parallel
+version: ${project.version}
+main: be4rjp.parallel.Parallel
+api-version: 1.15
+softdepend: [WorldEdit, Multiverse-Core, Cinema4C]
+depend: [AsyncChunkLib]
+#--------------------------------------
+commands:
+  parallel:
+    description: Type /parallel help
+    usage: Type /parallel help
+    permission: parallel.admin
+#--------------------------------------
+permissions:
+  parallel.admin:
+    description: admin command.
