@@ -1,28 +1,28 @@
 package be4rjp.parallel.chiyogami;
 
-import org.bukkit.World;
+import be4rjp.parallel.player.ParallelPlayer;
+import org.bukkit.entity.Player;
 import world.chiyogami.chiyogamilib.ChiyogamiLib;
 import world.chiyogami.chiyogamilib.ServerType;
 
-import java.util.UUID;
-
 public class ChiyogamiManager {
     
-    public static void addEditedBlock(World world, int x, int y, int z, Object wrappedParallelWorld){
-        if(ChiyogamiLib.getServerType() == ServerType.CHIYOGAMI && wrappedParallelWorld != null){
-            ChiyogamiBridge.addEditedBlock(world, x, y, z, wrappedParallelWorld);
+    public static void setCheckFunction(ParallelPlayer parallelPlayer, Object wrappedParallelPlayer){
+        if(ChiyogamiLib.getServerType() == ServerType.CHIYOGAMI && wrappedParallelPlayer != null){
+            ChiyogamiBridge.setCheckFunction(parallelPlayer, wrappedParallelPlayer);
         }
     }
     
-    public static void removeEditedBlock(World world, int x, int y, int z, Object wrappedParallelWorld){
-        if(ChiyogamiLib.getServerType() == ServerType.CHIYOGAMI && wrappedParallelWorld != null){
-            ChiyogamiBridge.removeEditedBlock(world, x, y, z, wrappedParallelWorld);
-        }
-    }
     
-    public static Object getWrappedParallelWorld(UUID uuid){
+    public static void removeWrappedParallelPlayer(Player player){
         if(ChiyogamiLib.getServerType() == ServerType.CHIYOGAMI){
-            return ChiyogamiBridge.getWrappedParallelWorld(uuid);
+            ChiyogamiBridge.removeWrappedParallelPlayer(player);
+        }
+    }
+    
+    public static Object getWrappedParallelPlayer(Player player){
+        if(ChiyogamiLib.getServerType() == ServerType.CHIYOGAMI){
+            return ChiyogamiBridge.getWrappedParallelPlayer(player);
         }
         return null;
     }

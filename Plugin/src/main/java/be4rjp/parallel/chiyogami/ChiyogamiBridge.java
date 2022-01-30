@@ -1,48 +1,59 @@
 package be4rjp.parallel.chiyogami;
 
-import org.bukkit.World;
+import be4rjp.parallel.ParallelUniverse;
+import be4rjp.parallel.ParallelWorld;
+import be4rjp.parallel.player.ParallelPlayer;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 import world.chiyogami.chiyogamilib.ChiyogamiLib;
 import world.chiyogami.chiyogamilib.ServerType;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.UUID;
+import java.util.function.Function;
 
 public class ChiyogamiBridge {
     
-    private static Method addEditedBlock;
-    private static Method removeEditedBlock;
+    private static Field hasBlockCheckFunction;
     
     static {
         if(ChiyogamiLib.getServerType() == ServerType.CHIYOGAMI){
             try{
-                Class<?> wrappedParallelWorld = Class.forName("world.chiyogami.bridge.WrappedParallelWorld");
-                addEditedBlock = wrappedParallelWorld.getMethod("addEditedBlock", World.class, int.class, int.class, int.class);
-                removeEditedBlock = wrappedParallelWorld.getMethod("removeEditedBlock", World.class, int.class, int.class, int.class);
+                Class<?> wrappedParallelPlayer = Class.forName("world.chiyogami.bridge.WrappedParallelPlayer");
+                hasBlockCheckFunction = wrappedParallelPlayer.getField("hasBlockCheckFunction");
             }catch (Exception e){e.printStackTrace();}
         }
     }
     
-    public static void addEditedBlock(World world, int x, int y, int z, Object wrappedParallelWorldObject){
+    public static void setCheckFunction(ParallelPlayer parallelPlayer, Object wrappedParallelPlayerObject){
         try {
-            addEditedBlock.invoke(wrappedParallelWorldObject, world, x, y, z);
+            hasBlockCheckFunction.set(wrappedParallelPlayerObject, (Function<Block, Boolean>) block -> {
+                ParallelUniverse universe = parallelPlayer.getUniverse();
+                if(universe == null) return false;
+
+                ParallelWorld parallelWorld = universe.getWorld(block.getWorld().getName());
+                return parallelWorld.hasBlockData(block.getX(), block.getY(), block.getZ());
+            });
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
     
-    public static void removeEditedBlock(World world, int x, int y, int z, Object wrappedParallelWorldObject){
+    public static void removeWrappedParallelPlayer(Player player){
         try {
-            removeEditedBlock.invoke(wrappedParallelWorldObject, world, x, y, z);
+            Class<?> ParallelWorldBridge = Class.forName("world.chiyogami.bridge.ParallelBridge");
+            Method method = ParallelWorldBridge.getMethod("removeWrappedParallelPlayer", Player.class);
+            method.invoke(null, player);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
     
-    public static Object getWrappedParallelWorld(UUID uuid){
+    public static Object getWrappedParallelPlayer(Player player){
         try {
-            Class<?> ParallelWorldBridge = Class.forName("world.chiyogami.bridge.ParallelWorldBridge");
-            Method method = ParallelWorldBridge.getMethod("getWrappedParallelWorld", UUID.class);
-            return method.invoke(null, uuid);
+            Class<?> ParallelWorldBridge = Class.forName("world.chiyogami.bridge.ParallelBridge");
+            Method method = ParallelWorldBridge.getMethod("getWrappedParallelPlayer", Player.class);
+            return method.invoke(null, player);
         } catch (Exception e) {
             e.printStackTrace();
         }

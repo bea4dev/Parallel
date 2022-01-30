@@ -146,7 +146,7 @@ public class NMSHandler implements INMSHandler {
         try {
             MultiBlockChangePacketHandler.a.set(packet, new ChunkCoordIntPair(parallelChunk.getChunkX(), parallelChunk.getChunkZ()));
             MultiBlockChangePacketHandler.b.set(packet, array);
-            sendPacket(player, parallelChunk);
+            sendPacket(player, packet);
         }catch (Exception e){e.printStackTrace();}
     }
     
