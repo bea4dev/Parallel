@@ -3,6 +3,8 @@
 
 このプラグインは他のプラグインからの呼び出しを前提としています
 
+### Required
+https://github.com/Be4rJP/AsyncChunkLib
 
 ### Supported version
 ```
