@@ -6,6 +6,7 @@ import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.Set;
 
 public interface ParallelWorld {
@@ -175,5 +176,11 @@ public interface ParallelWorld {
      * @param blocks Update block positions
      */
     void sendMultiBlockUpdate(Set<BlockPosition3i> blocks);
+    
+    /**
+     * Get all chunks in this world.
+     * @return All chunks
+     */
+    Collection<ParallelChunk> getAllChunk();
     
 }

@@ -76,5 +76,7 @@ public class ImplParallelPlayer extends ParallelPlayer {
 
         this.currentUniverse = parallelUniverse;
     }
+    
+    public void setUniverseRaw(ParallelUniverse universe){this.currentUniverse = universe;}
 
 }

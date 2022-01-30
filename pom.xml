@@ -4,7 +4,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <revision>2.0.1</revision>
+    <revision>2.0.2</revision>
   </properties>
 
   <groupId>be4rjp</groupId>

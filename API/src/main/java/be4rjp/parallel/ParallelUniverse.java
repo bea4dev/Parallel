@@ -3,6 +3,7 @@ package be4rjp.parallel;
 import be4rjp.parallel.player.ParallelPlayer;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -40,4 +41,16 @@ public interface ParallelUniverse {
      * @return All players in this universe
      */
     Set<ParallelPlayer> getResidents();
+    
+    /**
+     * Get all world in this universe.
+     * @return All world.
+     */
+    Collection<ParallelWorld> getAllWorld();
+    
+    /**
+     * Add a diff for the specified universe.
+     * @param universe Universe
+     */
+    void addDiffs(ParallelUniverse universe);
 }

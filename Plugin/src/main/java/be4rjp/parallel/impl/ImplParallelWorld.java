@@ -12,6 +12,7 @@ import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,7 +32,11 @@ public class ImplParallelWorld implements ParallelWorld {
     
     
     
-    private final Map<Long, ImplParallelChunk> chunkMap = new ConcurrentHashMap<>();
+    private final Map<Long, ParallelChunk> chunkMap = new ConcurrentHashMap<>();
+    
+    public ParallelChunk createChunkIfAbsent(int chunkX, int chunkZ){
+        return chunkMap.computeIfAbsent(ChunkUtil.getCoordinateKey(chunkX, chunkZ), key -> new ImplParallelChunk(this, chunkX, chunkZ));
+    }
     
     @Override
     public String getName() {
@@ -216,7 +221,7 @@ public class ImplParallelWorld implements ParallelWorld {
     }
     
     @Override
-    public ImplParallelChunk getChunk(int chunkX, int chunkZ){return chunkMap.get(ChunkUtil.getCoordinateKey(chunkX, chunkZ));}
+    public ParallelChunk getChunk(int chunkX, int chunkZ){return chunkMap.get(ChunkUtil.getCoordinateKey(chunkX, chunkZ));}
     
     @Override
     public void sendBlockUpdate(int blockX, int blockY, int blockZ) {
@@ -239,5 +244,8 @@ public class ImplParallelWorld implements ParallelWorld {
             });
         }
     }
+    
+    @Override
+    public Collection<ParallelChunk> getAllChunk() {return chunkMap.values();}
     
 }

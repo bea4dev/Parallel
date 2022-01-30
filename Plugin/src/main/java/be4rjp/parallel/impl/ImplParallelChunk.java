@@ -40,9 +40,9 @@ public class ImplParallelChunk implements ParallelChunk {
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
 
-        this.blockLightArrays = new SectionLevelArray[NMSManager.isHigher_v1_18_R1() ? 32 : 16];
-        this.skyLightArrays = new SectionLevelArray[NMSManager.isHigher_v1_18_R1() ? 32 : 16];
-        this.sectionTypeArrays = new SectionTypeArray[NMSManager.isHigher_v1_18_R1() ? 32 : 16];
+        this.blockLightArrays = new SectionLevelArray[NMSManager.isHigher_v1_18_R1() ? 24 : 16];
+        this.skyLightArrays = new SectionLevelArray[NMSManager.isHigher_v1_18_R1() ? 24 : 16];
+        this.sectionTypeArrays = new SectionTypeArray[NMSManager.isHigher_v1_18_R1() ? 24 : 16];
     }
 
     @Override
@@ -55,6 +55,40 @@ public class ImplParallelChunk implements ParallelChunk {
 
     @Override
     public int getChunkZ() {return chunkZ;}
+    
+    
+    public SectionLevelArray createBlockLightSectionLevelArrayIfAbsent(int sectionY) {
+        int sectionIndex = getSectionIndex(sectionY << 4);
+        SectionLevelArray sectionLevelArray = blockLightArrays[sectionIndex];
+        if(sectionLevelArray == null) {
+            sectionLevelArray = new SectionLevelArray();
+            blockLightArrays[sectionIndex] = sectionLevelArray;
+        }
+        
+        return sectionLevelArray;
+    }
+    
+    public SectionLevelArray createSkyLightSectionLevelArrayIfAbsent(int sectionY) {
+        int sectionIndex = getSectionIndex(sectionY << 4);
+        SectionLevelArray sectionLevelArray = skyLightArrays[sectionIndex];
+        if(sectionLevelArray == null) {
+            sectionLevelArray = new SectionLevelArray();
+            skyLightArrays[sectionIndex] = sectionLevelArray;
+        }
+    
+        return sectionLevelArray;
+    }
+    
+    public SectionTypeArray createSectionTypeArrayIfAbsent(int sectionY) {
+        int sectionIndex = getSectionIndex(sectionY << 4);
+        SectionTypeArray sectionTypeArray = sectionTypeArrays[sectionIndex];
+        if(sectionTypeArray == null) {
+            sectionTypeArray = new SectionTypeArray();
+            sectionTypeArrays[sectionIndex] = sectionTypeArray;
+        }
+        
+        return sectionTypeArray;
+    }
 
 
     private int getSectionIndex(int blockY){
