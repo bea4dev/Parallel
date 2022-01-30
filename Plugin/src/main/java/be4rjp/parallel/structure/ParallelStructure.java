@@ -115,11 +115,13 @@ public class ParallelStructure {
         ParallelWorld parallelWorld = universe.getWorld(Objects.requireNonNull(baseLocation.getWorld()).getName());
         
         Set<Block> blocks = new HashSet<>();
+        Set<BlockPosition3i> updateBlocks = new HashSet<>();
         for(Map.Entry<BlockPosition3i, BlockData> entry : structureData.getBlockDataMap().entrySet()){
             BlockPosition3i relative = entry.getKey();
             Block block = getBaseLocation().add(relative.getX(), relative.getY(), relative.getZ()).getBlock();
             parallelWorld.setBlockData(block.getX(), block.getY(), block.getZ(), entry.getValue());
             blocks.add(block);
+            updateBlocks.add(new BlockPosition3i(block.getX(), block.getY(), block.getZ()));
         }
         
         for(Map.Entry<BlockPosition3i, Integer> entry : structureData.getBlockLightLevelMap().entrySet()){
@@ -127,11 +129,12 @@ public class ParallelStructure {
             Block block = getBaseLocation().add(relative.getX(), relative.getY(), relative.getZ()).getBlock();
             parallelWorld.setBlockLightLevel(block.getX(), block.getY(), block.getZ(), entry.getValue());
             blocks.add(block);
+            updateBlocks.add(new BlockPosition3i(block.getX(), block.getY(), block.getZ()));
         }
         
         dataMap.put(universe.getName(), blocks);
     
-        //TODO Update packet
+        parallelWorld.sendMultiBlockUpdate(updateBlocks);
     }
     
     
