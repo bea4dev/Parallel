@@ -35,6 +35,64 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
         if (args == null) return false;
         if (args.length == 0) return false;
     
+        if(args[0].equals("structure")){
+            if(args.length < 3){
+                return false;
+            }
+        
+            //parallel structure set-data [structure-name] [data-name] [player]
+            if(args[1].equals("set-data")) {
+                if(args.length < 5){
+                    return false;
+                }
+            
+                ParallelStructure parallelStructure = ParallelStructure.getParallelStructure(args[2]);
+                if (parallelStructure == null) {
+                    sender.sendMessage(ChatColor.RED + "指定された名前の構造体は存在しません。");
+                    return true;
+                }
+            
+                ImplStructureData implStructureData = (ImplStructureData) ImplStructureData.getStructureData(args[3]);
+                if (implStructureData == null) {
+                    sender.sendMessage(ChatColor.RED + "指定された名前の構造データは存在しません。");
+                    return true;
+                }
+            
+                Player player = Bukkit.getPlayer(args[4]);
+                if(player == null){
+                    sender.sendMessage(ChatColor.RED + "指定されたプレイヤーが見つかりませんでした。");
+                    return true;
+                }
+            
+                parallelStructure.setStructureData(player, implStructureData);
+                sender.sendMessage(ChatColor.GREEN + "適用しました。");
+                return true;
+            }
+        
+            //parallel structure remove-data [structure-name] [player]
+            if(args[1].equals("remove-data")) {
+                if (args.length < 4) {
+                    return false;
+                }
+            
+                ParallelStructure parallelStructure = ParallelStructure.getParallelStructure(args[2]);
+                if (parallelStructure == null) {
+                    sender.sendMessage(ChatColor.RED + "指定された名前の構造体は存在しません。");
+                    return true;
+                }
+            
+                Player player = Bukkit.getPlayer(args[3]);
+                if(player == null){
+                    sender.sendMessage(ChatColor.RED + "指定されたプレイヤーが見つかりませんでした。");
+                    return true;
+                }
+            
+                parallelStructure.clearStructureData(player, true);
+                sender.sendMessage(ChatColor.GREEN + "適用しました。");
+                return true;
+            }
+        }
+    
         if (!(sender instanceof Player)) {
             sender.sendMessage(ChatColor.RED + "このコマンドはコンソールから実行できません。");
             return true;
@@ -178,58 +236,6 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
     
                 parallelStructure.saveData();
                 sender.sendMessage(ChatColor.GREEN + "保存しました。");
-                return true;
-            }
-    
-            //parallel structure set-data [structure-name] [data-name] [player]
-            if(args[1].equals("set-data")) {
-                if(args.length < 5){
-                    return false;
-                }
-                
-                ParallelStructure parallelStructure = ParallelStructure.getParallelStructure(args[2]);
-                if (parallelStructure == null) {
-                    sender.sendMessage(ChatColor.RED + "指定された名前の構造体は存在しません。");
-                    return true;
-                }
-    
-                ImplStructureData implStructureData = (ImplStructureData) ImplStructureData.getStructureData(args[3]);
-                if (implStructureData == null) {
-                    sender.sendMessage(ChatColor.RED + "指定された名前の構造データは存在しません。");
-                    return true;
-                }
-    
-                Player player = Bukkit.getPlayer(args[4]);
-                if(player == null){
-                    sender.sendMessage(ChatColor.RED + "指定されたプレイヤーが見つかりませんでした。");
-                    return true;
-                }
-                
-                parallelStructure.setStructureData(player, implStructureData);
-                sender.sendMessage(ChatColor.GREEN + "適用しました。");
-                return true;
-            }
-    
-            //parallel structure remove-data [structure-name] [player]
-            if(args[1].equals("remove-data")) {
-                if (args.length < 4) {
-                    return false;
-                }
-    
-                ParallelStructure parallelStructure = ParallelStructure.getParallelStructure(args[2]);
-                if (parallelStructure == null) {
-                    sender.sendMessage(ChatColor.RED + "指定された名前の構造体は存在しません。");
-                    return true;
-                }
-    
-                Player player = Bukkit.getPlayer(args[3]);
-                if(player == null){
-                    sender.sendMessage(ChatColor.RED + "指定されたプレイヤーが見つかりませんでした。");
-                    return true;
-                }
-    
-                parallelStructure.clearStructureData(player, true);
-                sender.sendMessage(ChatColor.GREEN + "適用しました。");
                 return true;
             }
         }

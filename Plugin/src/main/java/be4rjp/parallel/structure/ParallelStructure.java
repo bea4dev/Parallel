@@ -131,6 +131,8 @@ public class ParallelStructure {
             blocks.add(block);
             updateBlocks.add(new BlockPosition3i(block.getX(), block.getY(), block.getZ()));
         }
+    
+        parallelPlayer.getBukkitPlayer().sendMessage("HI!" + blocks.size());
         
         dataMap.put(universe.getName(), blocks);
     
@@ -163,12 +165,17 @@ public class ParallelStructure {
         
         Set<Block> blocks = dataMap.get(universe.getName());
         if(blocks == null) return;
+        parallelPlayer.getBukkitPlayer().sendMessage("HI!" + blocks.size());
     
         ParallelWorld parallelWorld = universe.getWorld(Objects.requireNonNull(baseLocation.getWorld()).getName());
         
         for(Block block : blocks){
             parallelWorld.removeBlockData(block.getX(), block.getY(), block.getZ());
         }
+        Set<BlockPosition3i> blockPosition3iSet = new HashSet<>();
+        blocks.forEach(block -> blockPosition3iSet.add(new BlockPosition3i(block.getX(), block.getY(), block.getZ())));
+        
+        parallelWorld.sendMultiBlockUpdate(blockPosition3iSet);
     }
     
     
