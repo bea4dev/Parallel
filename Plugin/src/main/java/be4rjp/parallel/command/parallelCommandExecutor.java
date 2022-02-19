@@ -1,11 +1,11 @@
 package be4rjp.parallel.command;
 
-import be4rjp.parallel.Parallel;
 import be4rjp.parallel.ParallelAPI;
 import be4rjp.parallel.ParallelUniverse;
 import be4rjp.parallel.gui.UniverseGUI;
 import be4rjp.parallel.player.ParallelPlayer;
 import be4rjp.parallel.structure.ParallelStructure;
+import be4rjp.parallel.structure.ImplStructureData;
 import be4rjp.parallel.structure.StructureData;
 import be4rjp.parallel.util.RegionBlocks;
 import com.sk89q.worldedit.IncompleteRegionException;
@@ -103,27 +103,26 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
     
                 RegionBlocks regionBlocks = new RegionBlocks(minLocation.toLocation(world), maxLocation.toLocation(world));
     
-    
-                StructureData structureData = StructureData.getStructureData(args[2]);
-                if (structureData != null) {
+                ImplStructureData implStructureData = (ImplStructureData) StructureData.getStructureData(args[2]);
+                if (implStructureData != null) {
                     sender.sendMessage(ChatColor.RED + "指定された名前の構造データは既に存在しています。");
                     return true;
                 }
-                structureData = new StructureData(args[2]);
+                implStructureData = new ImplStructureData(args[2]);
     
-                structureData.setBlockData(minLocation.toLocation(world), regionBlocks.getBlocks());
+                implStructureData.setBlockData(minLocation.toLocation(world), regionBlocks.getBlocks());
                 sender.sendMessage(ChatColor.GREEN + "作成しました。");
                 return true;
             }
     
             if(args[1].equals("save")) {
-                StructureData structureData = StructureData.getStructureData(args[2]);
-                if (structureData == null) {
+                ImplStructureData implStructureData = (ImplStructureData) ImplStructureData.getStructureData(args[2]);
+                if (implStructureData == null) {
                     sender.sendMessage(ChatColor.RED + "指定された名前の構造データは存在しません。");
                     return true;
                 }
                 
-                structureData.saveData();
+                implStructureData.saveData();
                 sender.sendMessage(ChatColor.GREEN + "保存しました。");
                 return true;
             }
@@ -194,8 +193,8 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
                     return true;
                 }
     
-                StructureData structureData = StructureData.getStructureData(args[3]);
-                if (structureData == null) {
+                ImplStructureData implStructureData = (ImplStructureData) ImplStructureData.getStructureData(args[3]);
+                if (implStructureData == null) {
                     sender.sendMessage(ChatColor.RED + "指定された名前の構造データは存在しません。");
                     return true;
                 }
@@ -206,7 +205,7 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
                     return true;
                 }
                 
-                parallelStructure.setStructureData(player, structureData);
+                parallelStructure.setStructureData(player, implStructureData);
                 sender.sendMessage(ChatColor.GREEN + "適用しました。");
                 return true;
             }
@@ -285,7 +284,7 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
                 if(args[1].equals("create")) {
                     list.add("[data-name]");
                 }else{
-                    list = new ArrayList<>(StructureData.getStructureDataMap().keySet());
+                    list = new ArrayList<>(ImplStructureData.getStructureDataMap().keySet());
                 }
             }
         
@@ -294,7 +293,7 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
     
         if (args.length == 4) {
             if(args[1].equals("set-data")){
-                list = new ArrayList<>(StructureData.getStructureDataMap().keySet());
+                list = new ArrayList<>(ImplStructureData.getStructureDataMap().keySet());
                 return list;
             }
         }

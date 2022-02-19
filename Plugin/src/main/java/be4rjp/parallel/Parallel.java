@@ -6,7 +6,7 @@ import be4rjp.parallel.command.parallelCommandExecutor;
 import be4rjp.parallel.impl.ImplParallelAPI;
 import be4rjp.parallel.nms.NMSManager;
 import be4rjp.parallel.structure.ParallelStructure;
-import be4rjp.parallel.structure.StructureData;
+import be4rjp.parallel.structure.ImplStructureData;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -55,7 +55,7 @@ public final class Parallel extends JavaPlugin {
             BridgeManager.registerPluginBridge(this.getName());
         }
         
-        StructureData.loadAllStructureData();
+        ImplStructureData.loadAllStructureData();
         ParallelStructure.loadAllParallelStructure();
     }
     

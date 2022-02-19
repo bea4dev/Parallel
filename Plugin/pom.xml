@@ -126,7 +126,7 @@
         <dependency>
             <groupId>com.github.Be4rJP</groupId>
             <artifactId>ArtGUI</artifactId>
-            <version>54ffe9cdc3</version>
+            <version>3146ff51b7</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

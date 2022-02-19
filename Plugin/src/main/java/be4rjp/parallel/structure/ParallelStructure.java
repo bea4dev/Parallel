@@ -83,30 +83,30 @@ public class ParallelStructure {
     /**
      * この構造物を指定された構造物データで上書きして特定のプレイヤーへ見せる
      * @param player 構造物を変化させて見せるプレイヤー
-     * @param structureData 構造物データ
+     * @param implStructureData 構造物データ
      */
-    public void setStructureData(Player player, StructureData structureData){
+    public void setStructureData(Player player, ImplStructureData implStructureData){
         ParallelPlayer parallelPlayer = ParallelPlayer.getParallelPlayer(player);
         if(parallelPlayer == null) return;
         
-        this.setStructureData(parallelPlayer, structureData);
+        this.setStructureData(parallelPlayer, implStructureData);
     }
     
     /**
      * この構造物を指定された構造物データを適応して特定のプレイヤーへ見せる
      * @param parallelPlayer 構造物を変化させて見せるプレイヤー
-     * @param structureData 構造物データ
+     * @param implStructureData 構造物データ
      */
-    public void setStructureData(ParallelPlayer parallelPlayer, StructureData structureData) {
-        this.setStructureData(parallelPlayer, structureData, UpdatePacketType.MULTI_BLOCK_CHANGE);
+    public void setStructureData(ParallelPlayer parallelPlayer, ImplStructureData implStructureData) {
+        this.setStructureData(parallelPlayer, implStructureData, UpdatePacketType.MULTI_BLOCK_CHANGE);
     }
     
     /**
      * この構造物を指定された構造物データを適応して特定のプレイヤーへ見せる
      * @param parallelPlayer 構造物を変化させて見せるプレイヤー
-     * @param structureData 構造物データ
+     * @param implStructureData 構造物データ
      */
-    public void setStructureData(ParallelPlayer parallelPlayer, StructureData structureData, @Nullable UpdatePacketType type){
+    public void setStructureData(ParallelPlayer parallelPlayer, ImplStructureData implStructureData, @Nullable UpdatePacketType type){
         clearStructureData(parallelPlayer, false);
     
         ParallelUniverse universe = parallelPlayer.getUniverse();
@@ -116,7 +116,7 @@ public class ParallelStructure {
         
         Set<Block> blocks = new HashSet<>();
         Set<BlockPosition3i> updateBlocks = new HashSet<>();
-        for(Map.Entry<BlockPosition3i, BlockData> entry : structureData.getBlockDataMap().entrySet()){
+        for(Map.Entry<BlockPosition3i, BlockData> entry : implStructureData.getBlockDataMap().entrySet()){
             BlockPosition3i relative = entry.getKey();
             Block block = getBaseLocation().add(relative.getX(), relative.getY(), relative.getZ()).getBlock();
             parallelWorld.setBlockData(block.getX(), block.getY(), block.getZ(), entry.getValue());
@@ -124,7 +124,7 @@ public class ParallelStructure {
             updateBlocks.add(new BlockPosition3i(block.getX(), block.getY(), block.getZ()));
         }
         
-        for(Map.Entry<BlockPosition3i, Integer> entry : structureData.getBlockLightLevelMap().entrySet()){
+        for(Map.Entry<BlockPosition3i, Integer> entry : implStructureData.getBlockLightLevelMap().entrySet()){
             BlockPosition3i relative = entry.getKey();
             Block block = getBaseLocation().add(relative.getX(), relative.getY(), relative.getZ()).getBlock();
             parallelWorld.setBlockLightLevel(block.getX(), block.getY(), block.getZ(), entry.getValue());
