@@ -6,6 +6,7 @@ import be4rjp.parallel.nms.IPacketHandler;
 import be4rjp.parallel.player.ParallelPlayer;
 import net.minecraft.server.v1_16_R3.BlockPosition;
 import net.minecraft.server.v1_16_R3.PacketPlayOutBlockChange;
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.v1_16_R3.block.data.CraftBlockData;
 
@@ -37,6 +38,7 @@ public class BlockChangePacketHandler implements IPacketHandler {
 
             BlockData blockData = parallelWorld.getBlockData(bp.getX(), bp.getY(), bp.getZ());
             if(blockData == null) return packet;
+            if(blockData.getMaterial() == Material.AIR) return packet;
 
             PacketPlayOutBlockChange newPacket = new PacketPlayOutBlockChange();
             a.set(newPacket, bp);
