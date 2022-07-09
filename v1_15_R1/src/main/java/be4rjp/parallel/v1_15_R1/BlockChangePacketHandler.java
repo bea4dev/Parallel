@@ -38,7 +38,7 @@ public class BlockChangePacketHandler implements IPacketHandler {
 
             BlockData blockData = parallelWorld.getBlockData(bp.getX(), bp.getY(), bp.getZ());
             if(blockData == null) return packet;
-            if(blockData.getMaterial() == Material.AIR) return packet;
+            //if(blockData.getMaterial() == Material.AIR) return packet;
 
             PacketPlayOutBlockChange newPacket = new PacketPlayOutBlockChange();
             a.set(newPacket, bp);
