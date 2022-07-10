@@ -29,6 +29,13 @@ public class MapChunkPacketHandler implements IPacketHandler {
     private static Field blockids;
 
     private static Field blockIds;
+    
+    private static BiomeStorage EMPTY_BIOME_STORAGE = new BiomeStorage(null, null) {
+        @Override
+        public int[] a() {
+            return new int[0];
+        }
+    };
 
     static {
         try {
@@ -155,7 +162,7 @@ public class MapChunkPacketHandler implements IPacketHandler {
             if(!edited) return packet;
 
             Chunk chunk = new Chunk(((CraftWorld) world).getHandle(), new ChunkCoordIntPair(chunkX, chunkZ),
-                    null, ChunkConverter.a, TickListEmpty.b(), TickListEmpty.b(), 0L, chunkSections, null);
+                    EMPTY_BIOME_STORAGE, ChunkConverter.a, TickListEmpty.b(), TickListEmpty.b(), 0L, chunkSections, null);
 
             int cValue = c.getInt(packet);
 
