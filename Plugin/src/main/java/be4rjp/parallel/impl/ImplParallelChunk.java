@@ -96,12 +96,11 @@ public class ImplParallelChunk implements ParallelChunk {
         if(NMSManager.isHigher_v1_18_R1()){
             section = (blockY + 64) >> 4;
             section = Math.min(23, section);
-            section = Math.max(0, section);
         }else{
             section = blockY >> 4;
             section = Math.min(15, section);
-            section = Math.min(0, section);
         }
+        section = Math.max(0, section);
         return section;
     }
 
