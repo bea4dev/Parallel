@@ -25,6 +25,7 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -89,6 +90,26 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
             
                 parallelStructure.clearStructureData(player, true);
                 sender.sendMessage(ChatColor.GREEN + "適用しました。");
+                return true;
+            }
+
+            //parallel structure remove [structure-name]
+            if(args[1].equals("remove")) {
+                if (args.length < 3) {
+                    return false;
+                }
+
+                ParallelStructure parallelStructure = ParallelStructure.getParallelStructure(args[2]);
+                if (parallelStructure == null) {
+                    sender.sendMessage(ChatColor.RED + "指定された名前の構造体は存在しません。");
+                    return true;
+                }
+
+                ParallelStructure.getStructureMap().remove(args[2]);
+                File file = new File("plugins/Parallel/structures", args[2] + ".yml");
+                file.delete();
+
+                sender.sendMessage(ChatColor.GREEN + "削除しました。");
                 return true;
             }
         }
@@ -184,6 +205,21 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
                 sender.sendMessage(ChatColor.GREEN + "保存しました。");
                 return true;
             }
+
+            if(args[1].equals("remove")) {
+                ImplStructureData implStructureData = (ImplStructureData) ImplStructureData.getStructureData(args[2]);
+                if (implStructureData == null) {
+                    sender.sendMessage(ChatColor.RED + "指定された名前の構造データは存在しません。");
+                    return true;
+                }
+
+                ImplStructureData.getStructureDataMap().remove(args[2]);
+                File file = new File("plugins/Parallel/structure_data", args[2] + ".yml");
+                file.delete();
+
+                sender.sendMessage(ChatColor.GREEN + "削除しました。");
+                return true;
+            }
         }
     
         
@@ -265,11 +301,13 @@ public class parallelCommandExecutor implements CommandExecutor, TabExecutor {
                 list.add("remove-data");
                 list.add("create");
                 list.add("save");
+                list.add("remove");
             }
             
             if(args[0].equals("structure-data")){
                 list.add("create");
                 list.add("save");
+                list.add("remove");
             }
             
             if(args[0].equals("join-universe")){
