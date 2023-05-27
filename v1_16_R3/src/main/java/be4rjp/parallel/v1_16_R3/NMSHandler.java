@@ -55,7 +55,7 @@ public class NMSHandler implements INMSHandler {
     public boolean isMultiBlockChangePacket(Object packet) {return packet instanceof PacketPlayOutMultiBlockChange;}
 
     @Override
-    public boolean isBlockChangePacket(Object packet) {return packet instanceof PacketPlayOutBlockChange;}
+    public boolean isBlockChangePacket(Object packet) {return packet instanceof PacketPlayOutBlockChange || packet instanceof PacketPlayOutBlockBreak;}
 
     @Override
     public boolean isLightUpdatePacket(Object packet) {return packet instanceof PacketPlayOutLightUpdate;}
